@@ -13,6 +13,7 @@ set(SOURCE_FILES
         tetromino.hpp
         rotation.hpp
         tetromino.cpp
+        include/obpf/input.h
 )
 
 set(CMAKE_DEBUG_POSTFIX "_d")
