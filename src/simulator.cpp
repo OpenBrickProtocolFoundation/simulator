@@ -4,11 +4,11 @@
 #include <obpf/simulator.h>
 #include <spdlog/spdlog.h>
 
-Tetrion* obpf_create_tetrion() {
-    return new Tetrion{};
+ObpfTetrion* obpf_create_tetrion() {
+    return new ObpfTetrion{};
 }
 
-bool obpf_tetrion_try_get_active_tetromino(Tetrion const* const tetrion, ObpfTetromino* const out_tetromino) {
+bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, ObpfTetromino* const out_tetromino) {
     auto const active_tetromino = tetrion->active_tetromino();
     if (not active_tetromino.has_value()) {
         return false;
@@ -17,23 +17,23 @@ bool obpf_tetrion_try_get_active_tetromino(Tetrion const* const tetrion, ObpfTet
     return true;
 }
 
-void obpf_tetrion_simulate_up_until(Tetrion* const tetrion, uint64_t const frame) {
+void obpf_tetrion_simulate_up_until(ObpfTetrion* const tetrion, uint64_t const frame) {
     tetrion->simulate_up_until(frame);
 }
 
-void obpf_tetrion_enqueue_event(Tetrion* const tetrion, ObpfEvent const event) {
+void obpf_tetrion_enqueue_event(ObpfTetrion* const tetrion, ObpfEvent const event) {
     tetrion->enqueue_event(event);
 }
 
-void obpf_destroy_tetrion(Tetrion const* const tetrion) {
+void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) {
     delete tetrion;
 }
 
-Matrix const* obpf_tetrion_matrix(Tetrion const* const tetrion) {
+ObpfMatrix const* obpf_tetrion_matrix(ObpfTetrion const* const tetrion) {
     return std::addressof(tetrion->matrix());
 }
 
-ObpfTetrominoType obpf_matrix_get(Matrix const* const matrix, ObpfVec2 const position) {
+ObpfTetrominoType obpf_matrix_get(ObpfMatrix const* const matrix, ObpfVec2 const position) {
     return static_cast<ObpfTetrominoType>((*matrix)[position]);
 }
 

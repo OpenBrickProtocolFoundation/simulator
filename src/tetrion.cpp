@@ -3,7 +3,7 @@
 
 #include <cassert>
 
-void Tetrion::simulate_up_until(std::uint64_t const frame) {
+void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
         if (m_next_frame % 28 == 0) {
             move_down();
@@ -13,11 +13,11 @@ void Tetrion::simulate_up_until(std::uint64_t const frame) {
     }
 }
 
-void Tetrion::enqueue_event(Event const& event) {
+void ObpfTetrion::enqueue_event(Event const& event) {
     m_events.push_back(event);
 }
 
-void Tetrion::freeze_and_destroy_active_tetromino() {
+void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     if (not active_tetromino().has_value()) {
         return;
     }
@@ -28,13 +28,13 @@ void Tetrion::freeze_and_destroy_active_tetromino() {
     m_active_tetromino = std::nullopt;
 }
 
-bool Tetrion::is_active_tetromino_position_valid() const {
+bool ObpfTetrion::is_active_tetromino_position_valid() const {
     if (not active_tetromino().has_value()) {
         return true;
     }
     auto const mino_positions = get_mino_positions(active_tetromino().value());
     for (auto const position : mino_positions) {
-        if (position.x < 0 or position.x >= Matrix::width or position.y >= Matrix::height
+        if (position.x < 0 or position.x >= ObpfMatrix::width or position.y >= ObpfMatrix::height
             or m_matrix[position] != TetrominoType::Empty) {
             return false;
         }
@@ -42,11 +42,11 @@ bool Tetrion::is_active_tetromino_position_valid() const {
     return true;
 }
 
-void Tetrion::spawn_next_tetromino() {
+void ObpfTetrion::spawn_next_tetromino() {
     m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, TetrominoType::O };
 }
 
-void Tetrion::process_events() {
+void ObpfTetrion::process_events() {
     for (auto const& event : m_events) {
         assert(event.frame >= m_next_frame);
         if (event.frame == m_next_frame) {
@@ -62,7 +62,7 @@ void Tetrion::process_events() {
     std::erase_if(m_events, [this](auto const& event) { return event.frame <= m_next_frame; });
 }
 
-void Tetrion::handle_keypress(ObpfKey const key) {
+void ObpfTetrion::handle_keypress(ObpfKey const key) {
     switch (key) {
         case OBPF_KEY_LEFT:
             move_left();
@@ -76,7 +76,7 @@ void Tetrion::handle_keypress(ObpfKey const key) {
     }
 }
 
-void Tetrion::move_left() {
+void ObpfTetrion::move_left() {
     if (not active_tetromino().has_value()) {
         return;
     }
@@ -86,7 +86,7 @@ void Tetrion::move_left() {
     }
 }
 
-void Tetrion::move_right() {
+void ObpfTetrion::move_right() {
     if (not active_tetromino().has_value()) {
         return;
     }
@@ -96,7 +96,7 @@ void Tetrion::move_right() {
     }
 }
 
-void Tetrion::move_down() {
+void ObpfTetrion::move_down() {
     if (not active_tetromino().has_value()) {
         return;
     }
@@ -108,7 +108,7 @@ void Tetrion::move_down() {
     }
 }
 
-void Tetrion::drop() {
+void ObpfTetrion::drop() {
     if (not active_tetromino().has_value()) {
         return;
     }

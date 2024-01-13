@@ -5,7 +5,7 @@
 #include <array>
 #include <obpf/constants.h>
 
-struct Matrix final {
+struct ObpfMatrix final {
 public:
     static constexpr auto width = OBPF_MATRIX_WIDTH;
     static constexpr auto height = OBPF_MATRIX_HEIGHT;

@@ -7,24 +7,24 @@
 #include <optional>
 #include <vector>
 
-struct Tetrion final {
+struct ObpfTetrion final {
 private:
     using Event = ObpfEvent;
 
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
 
-    Matrix m_matrix;
+    ObpfMatrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
     std::uint64_t m_next_frame = 0;
     std::vector<Event> m_events;
 
 public:
-    Tetrion() {
+    ObpfTetrion() {
         spawn_next_tetromino();
     }
 
-    [[nodiscard]] Matrix const& matrix() const {
+    [[nodiscard]] ObpfMatrix const& matrix() const {
         return m_matrix;
     }
 
