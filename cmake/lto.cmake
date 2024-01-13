@@ -1,7 +1,7 @@
 include(CheckIPOSupported)
 
 # This function tries to enable link-time optimizations. It outputs a warning on failure.
-function(try_enable_link_time_optimizations)
+function(obpf_simulator_try_enable_link_time_optimizations)
     check_ipo_supported(RESULT ipo_supported)
     if (ipo_supported)
         message("link-time optimizations enabled")

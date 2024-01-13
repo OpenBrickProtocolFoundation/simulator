@@ -1,7 +1,7 @@
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/system_link.cmake")
 
-function(setup_dependencies)
+function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME SPDLOG
             GITHUB_REPOSITORY gabime/spdlog

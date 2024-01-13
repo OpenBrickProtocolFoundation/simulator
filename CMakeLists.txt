@@ -8,7 +8,7 @@ if(MSVC)
 endif()
 
 include(dependencies.cmake)
-setup_dependencies()
+obpf_simulator_setup_dependencies()
 
 include(project_options.cmake)
 

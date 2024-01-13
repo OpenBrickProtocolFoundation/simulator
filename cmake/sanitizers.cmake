@@ -1,7 +1,7 @@
 # this file is based on:
 # https://github.com/cpp-best-practices/cmake_template/blob/main/cmake/Sanitizers.cmake
 
-function(enable_sanitizers
+function(obpf_simulator_enable_sanitizers
         target_name
         enable_address_sanitizer
         enable_undefined_behavior_sanitizer
