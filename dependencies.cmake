@@ -17,4 +17,20 @@ function(obpf_simulator_setup_dependencies)
             OPTIONS
             "GSL_TEST OFF"
     )
+    CPMAddPackage(
+            NAME C2K_SOCKETS
+            GITHUB_REPOSITORY mgerhold/sockets
+            VERSION 0.2.0
+            OPTIONS
+            "GSL_TEST OFF"
+    )
+    CPMAddPackage(
+            NAME TL_EXPECTED
+            GITHUB_REPOSITORY TartanLlama/expected
+            VERSION 1.1.0
+            OPTIONS
+            "EXPECTED_BUILD_PACKAGE OFF"
+            "EXPECTED_BUILD_TESTS OFF"
+            "EXPECTED_BUILD_PACKAGE_DEB OFF"
+    )
 endfunction()
