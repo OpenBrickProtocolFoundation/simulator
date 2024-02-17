@@ -26,6 +26,8 @@ else ()
     option(obpf_simulator_enable_undefined_behavior_sanitizer "Enable undefined behavior sanitizer" OFF)
     option(obpf_simulator_enable_address_sanitizer "Enable address sanitizer" OFF)
 endif ()
+option(obpf_simulator_build_shared_libs "Build shared libraries instead of static libraries" ON)
+set(BUILD_SHARED_LIBS ${obpf_simulator_build_shared_libs})
 
 add_library(obpf_simulator_warnings INTERFACE)
 obpf_simulator_set_warnings(obpf_simulator_warnings ${obpf_simulator_warnings_as_errors})
