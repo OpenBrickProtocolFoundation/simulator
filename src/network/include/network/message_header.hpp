@@ -5,5 +5,5 @@
 
 struct MessageHeader {
     MessageType type;
-    std::uint64_t payload_size;
+    std::uint16_t payload_size;
 };
