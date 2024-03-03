@@ -7,7 +7,7 @@
  )
 
  add_executable(simulator_tests network_tests.cpp)
- target_link_libraries(simulator_tests PRIVATE network)
+ target_link_libraries(simulator_tests PRIVATE obpf_simulator_project_options network)
  target_link_system_libraries(simulator_tests PRIVATE gtest_main gmock_main)
 
  include(GoogleTest)

@@ -26,7 +26,7 @@
     });
     auto const port = server.local_address().port;
     auto client = c2k::Sockets::create_client(c2k::AddressFamily::Ipv4, "127.0.0.1", port);
-    auto const num_bytes_sent = client.send(buffer).get();
+    [[maybe_unused]] auto const num_bytes_sent = client.send(buffer).get();
     assert(num_bytes_sent == buffer.data.size());
     auto result = future.get();
     return result;

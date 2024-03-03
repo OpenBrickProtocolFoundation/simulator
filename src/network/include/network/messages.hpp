@@ -1,8 +1,8 @@
 #pragma once
 
 #include "detail/shared_lib_export.hpp"
-#include "message_types.hpp"
 #include "message_header.hpp"
+#include "message_types.hpp"
 #include <array>
 #include <memory>
 #include <obpf/constants.h>
@@ -68,21 +68,24 @@ struct Heartbeat final : AbstractMessage {
     }
 
 private:
-    [[nodiscard]] static constexpr std::uint64_t calculate_payload_size(std::size_t const num_events) {
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size(
+            std::size_t const num_events
+    ) {
         // clang-format off
-        return
+        return static_cast<decltype(MessageHeader::payload_size)>(
             sizeof(frame)
             + sizeof(std::uint8_t) // number of events
             + num_events * (
-                sizeof(std::uint8_t) // key
-                + sizeof(std::uint8_t) // type
+                sizeof(std::uint8_t)    // key
+                + sizeof(std::uint8_t)  // type
                 + sizeof(std::uint64_t) // frame
-            );
+            )
+        );
         // clang-format on
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
-        auto const& other_heartbeat = static_cast<decltype(*this) const&>(other);
+        auto const& other_heartbeat = static_cast<decltype(*this)&>(other);
         return std::tie(frame, events) == std::tie(other_heartbeat.frame, other_heartbeat.events);
     }
 };
@@ -105,12 +108,12 @@ struct GridState final : AbstractMessage {
     }
 
 private:
-    [[nodiscard]] static constexpr std::uint64_t calculate_payload_size() {
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size() {
         return sizeof(frame) + std::tuple_size_v<decltype(grid_contents)> * sizeof(std::uint8_t);
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
-        auto const& other_gridstate = static_cast<decltype(*this) const&>(other);
+        auto const& other_gridstate = static_cast<decltype(*this)&>(other);
         return std::tie(frame, grid_contents) == std::tie(other_gridstate.frame, other_gridstate.grid_contents);
     }
 };
@@ -135,12 +138,14 @@ struct GameStart final : AbstractMessage {
     }
 
 private:
-    [[nodiscard]] static constexpr std::uint64_t calculate_payload_size() {
-        return sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed);
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size() {
+        return static_cast<decltype(MessageHeader::payload_size)>(
+                sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed)
+        );
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
-        auto const& other_game_start = static_cast<decltype(*this) const&>(other);
+        auto const& other_game_start = static_cast<decltype(*this)&>(other);
         return std::tie(client_id, start_frame, random_seed)
                == std::tie(other_game_start.client_id, other_game_start.start_frame, other_game_start.random_seed);
     }
@@ -176,7 +181,9 @@ struct EventBroadcast final : AbstractMessage {
     }
 
 private:
-    [[nodiscard]] static constexpr std::uint64_t calculate_payload_size(std::span<std::size_t const> const sizes) {
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size(
+            std::span<std::size_t const> const sizes
+    ) {
         auto result = std::size_t{ 0 };
         result += sizeof(frame);
         result += sizeof(std::uint8_t); // num clients
@@ -189,11 +196,11 @@ private:
                          + sizeof(std::uint64_t) // event frame
                       );
         }
-        return static_cast<std::uint64_t>(result);
+        return static_cast<decltype(MessageHeader::payload_size)>(result);
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
-        auto const& other_event_broadcast = static_cast<decltype(*this) const&>(other);
+        auto const& other_event_broadcast = static_cast<decltype(*this)&>(other);
         return std::tie(frame, events_per_client)
                == std::tie(other_event_broadcast.frame, other_event_broadcast.events_per_client);
     }
