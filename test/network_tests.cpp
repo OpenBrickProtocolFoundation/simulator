@@ -98,6 +98,7 @@ TEST(NetworkTests, TooBigHeartbeatMessageFails) {
 
     try {
         std::ignore = send_receive_buffer_and_deserialize(buffer);
+        FAIL() << "expected MessageSerializationError";
     } catch (const MessageSerializationError& e) {
         EXPECT_STREQ(e.what(), "message payload size 160 is too big for message type 0 (maximum is 159)");
     } catch (...) {
@@ -111,6 +112,7 @@ TEST(NetworkTests, HeartbeatMessageWithEmptyPayloadFails) {
 
     try {
         std::ignore = send_receive_buffer_and_deserialize(buffer);
+        FAIL() << "expected MessageSerializationError";
     } catch (const MessageSerializationError& e) {
         EXPECT_STREQ(e.what(), "message payload size 0 is invalid");
     } catch (...) {
