@@ -30,7 +30,7 @@ Each message starts with a message header consisting of the message type (`uint8
   message and up until the current frame.
 
   | Element          | Data Type  | Value                                                              |
-      |------------------|------------|--------------------------------------------------------------------|
+  |------------------|------------|--------------------------------------------------------------------|
   | message type     | `uint8_t`  | 0 (`Heartbeat`)                                                    |
   | payload size     | `uint16_t` | 9 + 10 * \<number of events\>                                      |
   | frame            | `uint64_t` | the current frame (divisible by 15)                                |
@@ -44,7 +44,7 @@ Each message starts with a message header consisting of the message type (`uint8
   state at this point in time to the server.
 
   | Element       | Data Type          | Value                                                                                                                                                                                                                                                              |
-      |---------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  |---------------|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
   | message type  | `uint8_t`          | 1 (`GridState`)                                                                                                                                                                                                                                                    |
   | payload size  | `uint16_t`         | 228                                                                                                                                                                                                                                                                |
   | frame         | `uint64_t`         | the current frame                                                                                                                                                                                                                                                  |
@@ -56,7 +56,7 @@ Each message starts with a message header consisting of the message type (`uint8
   clients informations about the start of the game.
 
   | Element      | Data Type  | Value                            |
-      |--------------|------------|----------------------------------|
+  |--------------|------------|----------------------------------|
   | message type | `uint8_t`  | 2 (`GameStart`)                  |
   | payload size | `uint16_t` | 17                               |
   | client id    | `uint8_t`  | \<id of each individual client\> |
@@ -66,7 +66,7 @@ Each message starts with a message header consisting of the message type (`uint8
 - As soon as all heartbeat messages for a given frame (divisible by 15) have reached the server, the server sends all input commands of all clients during the last period to all clients.
 
   | Element                    | Data Type  | Value                                                 |
-    |----------------------------|------------|-------------------------------------------------------|
+  |----------------------------|------------|-------------------------------------------------------|
   | message type               | `uint8_t`  | 3 (`EventBroadcast`)                                  |
   | payload size               | `uint16_t` | 9 + \<client count\> * 2 + \<total event count\> * 10 |
   | frame                      | `uint64_t` | \<current frame\> (divisble by 15)                    |
