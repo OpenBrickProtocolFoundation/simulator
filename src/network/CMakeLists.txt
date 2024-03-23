@@ -9,5 +9,5 @@ add_library(network
 )
 
 target_link_libraries(network PUBLIC simulator)
-target_link_system_libraries(network PUBLIC c2k_sockets)
+target_link_system_libraries(network PUBLIC c2k_sockets spdlog::spdlog)
 target_include_directories(network PUBLIC include)

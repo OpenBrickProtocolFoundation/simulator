@@ -20,7 +20,7 @@ function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME C2K_SOCKETS
             GITHUB_REPOSITORY mgerhold/sockets
-            VERSION 0.3.0
+            VERSION 0.4.0
             OPTIONS
             "GSL_TEST OFF"
     )
