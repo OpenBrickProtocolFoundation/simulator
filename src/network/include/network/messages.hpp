@@ -1,5 +1,6 @@
 #pragma once
 
+#include "constants.hpp"
 #include "detail/shared_lib_export.hpp"
 #include "message_header.hpp"
 #include "message_types.hpp"
@@ -9,9 +10,19 @@
 #include <obpf/input.h>
 #include <obpf/tetromino_type.h>
 #include <sockets/sockets.hpp>
+#include <spdlog/spdlog.h>
+#include <unordered_set>
 #include <vector>
 
-class MessageSerializationError final : public std::runtime_error {
+class EventDeserializationError final : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class MessageDeserializationError final : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+
+class MessageInstantiationError final : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
@@ -25,7 +36,7 @@ struct Event final {
           type{ type },
           frame{ frame } { }
 
-    [[nodiscard]] static Event deserialize(c2k::Extractor& buffer);
+    [[nodiscard]] static Event deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] constexpr bool operator==(Event const&) const = default;
 };
@@ -61,7 +72,7 @@ struct Heartbeat final : AbstractMessage {
     [[nodiscard]] EXPORT MessageType type() const override;
     [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
     [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static Heartbeat deserialize(c2k::Extractor& buffer);
+    [[nodiscard]] EXPORT static Heartbeat deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size(heartbeat_interval);
@@ -101,7 +112,7 @@ struct GridState final : AbstractMessage {
     [[nodiscard]] EXPORT MessageType type() const override;
     [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
     [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static GridState deserialize(c2k::Extractor& buffer);
+    [[nodiscard]] EXPORT static GridState deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size();
@@ -131,7 +142,7 @@ struct GameStart final : AbstractMessage {
     [[nodiscard]] EXPORT MessageType type() const override;
     [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
     [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static GameStart deserialize(c2k::Extractor& buffer);
+    [[nodiscard]] EXPORT static GameStart deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size();
@@ -164,12 +175,55 @@ struct EventBroadcast final : AbstractMessage {
 
     EventBroadcast(std::uint64_t const frame, std::vector<ClientEvents> events_per_client)
         : frame{ frame },
-          events_per_client{ std::move(events_per_client) } { }
+          events_per_client{ std::move(events_per_client) } {
+        assert(this->frame >= heartbeat_interval);
+        if (this->events_per_client.size() > std::numeric_limits<std::uint8_t>::max()) {
+            throw MessageInstantiationError{ fmt::format(
+                    "cannot instantiate EventBroadcast message with {} clients ({} is maximum)",
+                    this->events_per_client.size(),
+                    std::numeric_limits<std::uint8_t>::max()
+            ) };
+        }
+
+        auto contained_client_ids = std::unordered_set<decltype(ClientEvents::client_id)>{};
+
+        for (auto const& [client_id, events] : this->events_per_client) {
+            auto const [_, inserted] = contained_client_ids.insert(client_id);
+            if (not inserted) {
+                throw MessageInstantiationError{
+                    std::format("duplicate client id {} while trying to instantiate EventBroadcast message", client_id)
+                };
+            }
+            if (events.size() > heartbeat_interval or events.empty()) {
+                throw MessageInstantiationError{
+                    std::format("cannot instantiate EventBroadcast message with {} events for client", events.size())
+                };
+            }
+
+            auto current_frame = events.at(0).frame;
+            for (auto i = std::size_t{ 0 }; i < events.size(); ++i) {
+                auto const next_frame = events.at(i).frame;
+                if (i > 0) {
+                    if (next_frame <= current_frame) {
+                        throw MessageInstantiationError{ "frame numbers of events must be in ascending order" };
+                    }
+                    current_frame = next_frame;
+                }
+                if (next_frame > this->frame or next_frame < this->frame - heartbeat_interval + 1) {
+                    throw MessageInstantiationError{ std::format(
+                            "event at in frame {} is outside of valid bounds for message in frame {}",
+                            next_frame,
+                            this->frame
+                    ) };
+                }
+            }
+        }
+    }
 
     [[nodiscard]] EXPORT MessageType type() const override;
     [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
     [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static EventBroadcast deserialize(c2k::Extractor& buffer);
+    [[nodiscard]] EXPORT static EventBroadcast deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         auto const sizes = [] {
