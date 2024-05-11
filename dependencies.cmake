@@ -33,4 +33,9 @@ function(obpf_simulator_setup_dependencies)
             "EXPECTED_BUILD_TESTS OFF"
             "EXPECTED_BUILD_PACKAGE_DEB OFF"
     )
+    CPMAddPackage(
+            NAME CRAPPER
+            GITHUB_REPOSITORY mgerhold/crapper
+            VERSION 0.3.0
+    )
 endfunction()
