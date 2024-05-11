@@ -19,8 +19,11 @@ static c2k::MessageBuffer& operator<<(c2k::MessageBuffer& buffer, Event const& e
     return buffer << static_cast<std::uint8_t>(event.key) << static_cast<std::uint8_t>(event.type) << event.frame;
 }
 
-[[nodiscard]] std::unique_ptr<AbstractMessage>
-AbstractMessage::from_socket(c2k::ClientSocket& socket, std::chrono::steady_clock::duration const timeout) {
+// clang-format off
+[[nodiscard]] std::unique_ptr<AbstractMessage> AbstractMessage::from_socket(
+    c2k::ClientSocket& socket,
+    std::chrono::steady_clock::duration const timeout
+) { // clang-format on
     using std::chrono::steady_clock;
 
     auto const end_time = steady_clock::now() + timeout;
