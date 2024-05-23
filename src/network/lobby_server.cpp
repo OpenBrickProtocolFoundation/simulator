@@ -122,3 +122,32 @@ void LobbyServer::unregister(User& user) {
     }
     return TcpPort{ start_response.value().port };
 }
+
+[[nodiscard]] LobbyList LobbyServer::lobbies() {
+    auto const response = Crapper{}.get(endpoint("lobbies")).send();
+    if (response.status() != HttpStatusCode::Ok) {
+        throw std::runtime_error{ "internal lobby error" };
+    }
+
+    return nlohmann::json::parse(response.body()).get<LobbyList>();
+}
+
+[[nodiscard]] tl::expected<void, LobbyDestructionError> LobbyServer::destroy_lobby(User const& user, Lobby&& lobby) {
+    if (not user.is_logged_in()) {
+        return tl::unexpected{ LobbyDestructionError::NotLoggedIn };
+    }
+    auto const response = Crapper{}
+                                  .delete_(endpoint(std::format("lobbies/{}", lobby.id)))
+                                  .header(HeaderKey::Authorization, std::format("Bearer {}", user.auth_token()))
+                                  .send();
+    switch (response.status()) {
+        case HttpStatusCode::NoContent:
+            return {};
+        case HttpStatusCode::NotFound:
+            return tl::unexpected{ LobbyDestructionError::LobbyNotFound };
+        case HttpStatusCode::Forbidden:
+            return tl::unexpected{ LobbyDestructionError::IsNotHost };
+        default:
+            return tl::unexpected{ LobbyDestructionError::Unknown };
+    }
+}

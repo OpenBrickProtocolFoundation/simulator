@@ -31,7 +31,37 @@ enum class GameStartError {
     Unknown,
 };
 
+enum class LobbyDestructionError {
+    NotLoggedIn,
+    LobbyNotFound,
+    IsNotHost,
+    Unknown,
+};
+
 enum class TcpPort : std::uint16_t {};
+
+struct PlayerInfo final {
+    std::string id;
+    std::string name;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PlayerInfo, id, name);
+
+struct LobbyInfo final {
+    std::string id;
+    std::string name;
+    std::uint16_t size{};
+    std::uint16_t num_players_in_lobby{};
+    PlayerInfo host_info;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyInfo, id, name, size, num_players_in_lobby, host_info);
+
+struct LobbyList final {
+    std::vector<LobbyInfo> lobbies;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyList, lobbies);
 
 class LobbyServer final {
 private:
@@ -68,4 +98,6 @@ public:
     void unregister(User& user);
     [[nodiscard]] tl::expected<Lobby, LobbyCreationError> create_lobby(User const& user, LobbySettings const& settings);
     [[nodiscard]] tl::expected<TcpPort, GameStartError> start(User const& user, Lobby const& lobby);
+    [[nodiscard]] LobbyList lobbies();
+    [[nodiscard]] tl::expected<void, LobbyDestructionError> destroy_lobby(User const& user, Lobby&& lobby);
 };

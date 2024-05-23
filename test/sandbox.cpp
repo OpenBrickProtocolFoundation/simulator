@@ -32,20 +32,25 @@ int main() {
 
     auto lobby_server = LobbyServer("127.0.0.1", 5000);
 
-    // auto user = lobby_server.register_user(username, password).value();
+    // auto user = lobby_server.register_user("r00tifant", "apple").value();
     auto const user = lobby_server.authenticate(username, password).value();
 
     // host
-    auto const lobby = lobby_server.create_lobby(user, LobbySettings{ "coder2k's game", 8 }).value();
-    auto const port = lobby_server.start(user, lobby).value();
-    spdlog::info("gameserver has been started on port {}", std::to_underlying(port));
+    auto lobby = lobby_server.create_lobby(user, LobbySettings{ "coder2k's game", 8 }).value();
+    // auto const port = lobby_server.start(user, lobby).value();
+    // spdlog::info("gameserver has been started on port {}", std::to_underlying(port));
 
     // client
-    // auto infos = lobby_server.lobbies();
+    auto const infos = lobby_server.lobbies();
+    spdlog::info("Lobbies:\n{}", nlohmann::json(infos).dump(4));
     // auto lobby_info = lobbies.front();
 
     // auto joined_lobby = lobby_server.join(user, lobby_info);
     // joined_lobby.ready();
 
     // lobby_server.unregister(user);
+
+    // host
+    auto const result = lobby_server.destroy_lobby(user, std::move(lobby));
+    assert(result.has_value());
 }
