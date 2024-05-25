@@ -3,6 +3,7 @@
 #include "tetrion.hpp"
 #include <cstdint>
 #include <sockets/sockets.hpp>
+#include <spdlog/spdlog.h>
 #include <vector>
 
 struct ClientInfo final {
@@ -36,6 +37,7 @@ public:
           m_broadcasting_thread{ keep_broadcasting, std::ref(*this) } {
         // todo: timeout
         m_expected_player_count = static_cast<std::size_t>(m_lobby_socket.receive<std::uint16_t>().get());
+        spdlog::info("expected player count: {}", m_expected_player_count);
 
         m_client_sockets.reserve(m_expected_player_count);
         m_client_infos.apply([this](std::vector<ClientInfo>& client_infos) {
@@ -43,7 +45,7 @@ public:
         });
         m_client_threads.reserve(m_expected_player_count);
 
-        if (m_lobby_socket.send(m_server_socket.local_address().port).get() != 2) {
+        if (m_lobby_socket.send(m_server_socket.local_address().port).get() != sizeof(std::uint16_t)) {
             throw std::runtime_error{ "unable to send port to lobby server" };
         }
     }

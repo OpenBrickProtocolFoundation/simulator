@@ -23,6 +23,11 @@ struct StartResponse final {
 };
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StartResponse, port);
 
+struct SetClientReadyResponse final {
+    std::uint16_t port;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SetClientReadyResponse, port);
+
 template<typename Deserialized>
 [[nodiscard]] static std::optional<Deserialized> deserialize(Response const& response) {
     try {
@@ -110,7 +115,8 @@ void LobbyServer::unregister(User& user) {
             return tl::unexpected{ GameStartError::IsNotHost };
         case HttpStatusCode::BadRequest:
             return tl::unexpected{ GameStartError::AlreadyRunning };
-        // todo: handle case that not all players are ready
+        case HttpStatusCode::TooEarly:
+            return tl::unexpected{ GameStartError::NotAllPlayersReady };
         default:
             if (response.status() != HttpStatusCode::Ok) {
                 return tl::unexpected{ GameStartError::Unknown };
@@ -121,4 +127,76 @@ void LobbyServer::unregister(User& user) {
         return tl::unexpected{ GameStartError::Unknown };
     }
     return TcpPort{ start_response.value().port };
+}
+
+[[nodiscard]] LobbyList LobbyServer::lobbies() {
+    auto const response = Crapper{}.get(endpoint("lobbies")).send();
+    if (response.status() != HttpStatusCode::Ok) {
+        throw std::runtime_error{ "internal lobby error" };
+    }
+
+    return nlohmann::json::parse(response.body()).get<LobbyList>();
+}
+
+[[nodiscard]] tl::expected<void, LobbyDestructionError> LobbyServer::destroy_lobby(User const& user, Lobby&& lobby) {
+    if (not user.is_logged_in()) {
+        return tl::unexpected{ LobbyDestructionError::NotLoggedIn };
+    }
+    auto const response = Crapper{}
+                                  .delete_(endpoint(std::format("lobbies/{}", lobby.id)))
+                                  .header(HeaderKey::Authorization, std::format("Bearer {}", user.auth_token()))
+                                  .send();
+    switch (response.status()) {
+        case HttpStatusCode::NoContent:
+            return {};
+        case HttpStatusCode::NotFound:
+            return tl::unexpected{ LobbyDestructionError::LobbyNotFound };
+        case HttpStatusCode::Forbidden:
+            return tl::unexpected{ LobbyDestructionError::IsNotHost };
+        default:
+            return tl::unexpected{ LobbyDestructionError::Unknown };
+    }
+}
+
+[[nodiscard]] tl::expected<Lobby, LobbyJoinError> LobbyServer::join(User const& user, LobbyInfo const& lobby_info) {
+    if (not user.is_logged_in()) {
+        return tl::unexpected{ LobbyJoinError::NotLoggedIn };
+    }
+    auto const response = Crapper{}
+                                  .post(endpoint(std::format("lobbies/{}", lobby_info.id)))
+                                  .header(HeaderKey::Authorization, std::format("Bearer {}", user.auth_token()))
+                                  .send();
+    if (response.status() == HttpStatusCode::NotFound) {
+        return tl::unexpected{ LobbyJoinError::LobbyNotFound };
+    }
+    if (response.status() == HttpStatusCode::BadRequest) {
+        return tl::unexpected{ LobbyJoinError::LobbyFullOrAlreadyJoined };
+    }
+    if (response.status() == HttpStatusCode::NoContent) {
+        return Lobby{ lobby_info.id };
+    }
+    return tl::unexpected{ LobbyJoinError::Unknown };
+}
+
+[[nodiscard]] tl::expected<TcpPort, SetClientReadyError> LobbyServer::set_ready(User const& user, Lobby const& lobby) {
+    if (not user.is_logged_in()) {
+        return tl::unexpected{ SetClientReadyError::NotLoggedIn };
+    }
+    auto const response = Crapper{}
+                                  .post(endpoint(std::format("lobby/{}/ready", lobby.id)))
+                                  .header(HeaderKey::Authorization, std::format("Bearer {}", user.auth_token()))
+                                  .send();
+    if (response.status() == HttpStatusCode::NotFound) {
+        return tl::unexpected{ SetClientReadyError::LobbyNotFoundOrClosed };
+    }
+
+    if (response.status() == HttpStatusCode::Forbidden) {
+        return tl::unexpected{ SetClientReadyError::NotInsideLobby };
+    }
+
+    if (response.status() == HttpStatusCode::Ok) {
+        return TcpPort{ nlohmann::json::parse(response.body()).get<SetClientReadyResponse>().port };
+    }
+
+    return tl::unexpected{ SetClientReadyError::Unknown };
 }
