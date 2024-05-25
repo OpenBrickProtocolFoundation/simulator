@@ -5,6 +5,7 @@
 #include <chrono>
 #include <numeric>
 #include <obpf/simulator.h>
+#include <ranges>
 #include <spdlog/spdlog.h>
 
 void Server::process_client(std::stop_token const& stop_token, Server& self, std::size_t index) {
@@ -17,7 +18,7 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
             message = AbstractMessage::from_socket(socket);
         } catch (c2k::TimeoutError const& exception) {
             spdlog::error("timeout error while waiting for next client message: {}", exception.what());
-            break;
+            continue; // todo: require clients to send heartbeats even before the game starts
         } catch (c2k::ReadError const& exception) {
             spdlog::error("error while reading from socket: {}", exception.what());
             break;
@@ -68,6 +69,7 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
     );
     auto const payload_size = static_cast<std::uint16_t>(9 + client_infos.size() * 2 + total_num_events * 10);
     message << payload_size << frame << static_cast<std::uint8_t>(client_infos.size());
+    spdlog::info("assembling broadcast message with data of {} clients", client_infos.size());
     for (auto& client : client_infos) {
         message << client.id << static_cast<std::uint8_t>(client.event_buffer.size());
         for (auto const& event : client.event_buffer) {
@@ -81,12 +83,32 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
 }
 
 void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) {
+    using namespace std::chrono_literals;
     auto last_min_num_frames_simulated = std::optional<std::uint64_t>{ std::nullopt };
+
+    // wait for all clients to connect
+    while (not stop_token.stop_requested()) {
+        auto const num_connected_clients = self.m_client_infos.apply([](std::vector<ClientInfo> const& client_infos) {
+            return client_infos.size();
+        });
+        if (num_connected_clients == self.m_expected_player_count) {
+            break;
+        }
+        spdlog::info("not all clients have connected yet, number of clients: {}", num_connected_clients);
+        // todo: replace sleep with condition variable
+        std::this_thread::sleep_for(100ms);
+    }
+
+    auto i = std::uint8_t{ 0 };
+    for (auto& socket : self.m_client_sockets) {
+        spdlog::info("assigning id {} to client", i);
+        auto const message = GameStart{ i, 180, 42 /* todo: insert actual random seed here */ };
+        socket.send(message.serialize()).wait();
+        ++i;
+    }
+
     while (not stop_token.stop_requested()) {
         self.m_client_infos.apply([&self, &last_min_num_frames_simulated](std::vector<ClientInfo>& client_infos) {
-            if (client_infos.size() < self.m_expected_player_count) {
-                return;
-            }
             auto const min_num_frames_simulated = std::min_element(
                     client_infos.cbegin(),
                     client_infos.cend(),
@@ -111,7 +133,6 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
         });
 
         // todo: replace sleep with condition variable
-        using namespace std::chrono_literals;
         std::this_thread::sleep_for(100ms);
     }
 }

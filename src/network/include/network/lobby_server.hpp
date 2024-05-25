@@ -38,6 +38,20 @@ enum class LobbyDestructionError {
     Unknown,
 };
 
+enum class LobbyJoinError {
+    NotLoggedIn,
+    LobbyNotFound,
+    LobbyFullOrAlreadyJoined,
+    Unknown,
+};
+
+enum class SetClientReadyError {
+    NotLoggedIn,
+    LobbyNotFoundOrClosed,
+    NotInsideLobby,
+    Unknown,
+};
+
 enum class TcpPort : std::uint16_t {};
 
 struct PlayerInfo final {
@@ -100,4 +114,6 @@ public:
     [[nodiscard]] tl::expected<TcpPort, GameStartError> start(User const& user, Lobby const& lobby);
     [[nodiscard]] LobbyList lobbies();
     [[nodiscard]] tl::expected<void, LobbyDestructionError> destroy_lobby(User const& user, Lobby&& lobby);
+    [[nodiscard]] tl::expected<Lobby, LobbyJoinError> join(User const& user, LobbyInfo const& lobby_info);
+    [[nodiscard]] tl::expected<TcpPort, SetClientReadyError> set_ready(User const& user, Lobby const& lobby);
 };
