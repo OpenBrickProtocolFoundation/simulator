@@ -1,9 +1,8 @@
-add_library(network
+add_library(network STATIC
         include/network/message_types.hpp
         include/network/message_header.hpp
         include/network/messages.hpp
         messages.cpp
-        include/network/detail/shared_lib_export.hpp
         include/network/constants.hpp
         include/network/user.hpp
         include/network/lobby_server.hpp

@@ -7,16 +7,16 @@
 
 static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) + sizeof(MessageHeader::payload_size);
 
-[[nodiscard]] Event Event::deserialize(c2k::MessageBuffer& buffer) {
-    if (auto const extracted = buffer.try_extract<std::uint8_t, std::uint8_t, std::uint64_t>()) {
-        auto const [key, event_type, event_frame] = extracted.value();
-        return Event{ static_cast<ObpfKey>(key), static_cast<ObpfEventType>(event_type), event_frame };
-    }
-    throw EventDeserializationError{ "too few bytes to deserialize event" };
-}
-
 static c2k::MessageBuffer& operator<<(c2k::MessageBuffer& buffer, Event const& event) {
     return buffer << static_cast<std::uint8_t>(event.key) << static_cast<std::uint8_t>(event.type) << event.frame;
+}
+
+[[nodiscard]] Event deserialize_event(c2k::MessageBuffer& buffer) {
+    if (auto const extracted = buffer.try_extract<std::uint8_t, std::uint8_t, std::uint64_t>()) {
+        auto const [key, event_type, event_frame] = extracted.value();
+        return Event{ static_cast<Key>(key), static_cast<EventType>(event_type), event_frame };
+    }
+    throw EventDeserializationError{ "too few bytes to deserialize event" };
 }
 
 // clang-format off
@@ -123,7 +123,7 @@ static c2k::MessageBuffer& operator<<(c2k::MessageBuffer& buffer, Event const& e
     auto events = std::vector<Event>{};
     events.reserve(num_events);
     for (auto i = std::size_t{ 0 }; i < num_events; ++i) {
-        events.push_back(Event::deserialize(buffer));
+        events.push_back(deserialize_event(buffer));
     }
     assert(buffer.size() == 0);
     return Heartbeat{ frame, std::move(events) };
@@ -162,7 +162,7 @@ static c2k::MessageBuffer& operator<<(c2k::MessageBuffer& buffer, Event const& e
         ) };
     }
     for (auto& tetromino : grid_contents) {
-        tetromino = static_cast<ObpfTetrominoType>(buffer.try_extract<std::uint8_t>().value());
+        tetromino = static_cast<TetrominoType>(buffer.try_extract<std::uint8_t>().value());
     }
     assert(buffer.size() == 0);
     return GridState{ frame, grid_contents };
@@ -255,7 +255,7 @@ static c2k::MessageBuffer& operator<<(c2k::MessageBuffer& buffer, Event const& e
             events.events.reserve(static_cast<std::size_t>(num_events));
             for (auto j = std::size_t{ 0 }; j < num_events; ++j) {
                 try {
-                    events.events.push_back(Event::deserialize(buffer));
+                    events.events.push_back(deserialize_event(buffer));
                 } catch (EventDeserializationError const& exception) {
                     throw MessageDeserializationError{
                         std::format("failed to deserialize event inside EventBroadcast message: {}", exception.what())

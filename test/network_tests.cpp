@@ -29,10 +29,10 @@ TEST(NetworkTests, RegularHeartbeatMessage) {
     auto const message = Heartbeat{
         42,
         {
-          Event{ ObpfKey::OBPF_KEY_LEFT, ObpfEventType::OBPF_PRESSED, 27 },
-          Event{ ObpfKey::OBPF_KEY_DROP, ObpfEventType::OBPF_PRESSED, 32 },
-          Event{ ObpfKey::OBPF_KEY_LEFT, ObpfEventType::OBPF_RELEASED, 35 },
-          Event{ ObpfKey::OBPF_KEY_DROP, ObpfEventType::OBPF_RELEASED, 42 },
+          Event{ Key::Left, EventType::Pressed, 27 },
+          Event{ Key::Drop, EventType::Pressed, 32 },
+          Event{ Key::Left, EventType::Released, 35 },
+          Event{ Key::Drop, EventType::Released, 42 },
           },
     };
     auto const deserialized_message = send_receive_and_deserialize(message);
@@ -44,12 +44,12 @@ TEST(NetworkTests, RegularHeartbeatMessage) {
 
 TEST(NetworkTests, BiggestAllowedHeartbeatMessage) {
     static constexpr auto event_pattern = std::array{
-        std::tuple{  ObpfKey::OBPF_KEY_LEFT,  ObpfEventType::OBPF_PRESSED },
-        std::tuple{ ObpfKey::OBPF_KEY_RIGHT,  ObpfEventType::OBPF_PRESSED },
-        std::tuple{  ObpfKey::OBPF_KEY_DROP,  ObpfEventType::OBPF_PRESSED },
-        std::tuple{  ObpfKey::OBPF_KEY_LEFT, ObpfEventType::OBPF_RELEASED },
-        std::tuple{ ObpfKey::OBPF_KEY_RIGHT, ObpfEventType::OBPF_RELEASED },
-        std::tuple{  ObpfKey::OBPF_KEY_DROP, ObpfEventType::OBPF_RELEASED },
+        std::tuple{  Key::Left,  EventType::Pressed },
+        std::tuple{ Key::Right,  EventType::Pressed },
+        std::tuple{  Key::Drop,  EventType::Pressed },
+        std::tuple{  Key::Left, EventType::Released },
+        std::tuple{ Key::Right, EventType::Released },
+        std::tuple{  Key::Drop, EventType::Released },
     };
     auto events = std::vector<Event>{};
     // clang-format off
@@ -109,13 +109,12 @@ TEST(NetworkTests, HeartbeatMessageWithLessDataThanDeclaredInHeader) {
 
 TEST(NetworkTests, GridStateMessage) {
     static constexpr auto grid_contents = [] {
-        auto result = std::array<ObpfTetrominoType, OBPF_MATRIX_WIDTH * OBPF_MATRIX_HEIGHT>{};
-        auto current = static_cast<ObpfTetrominoType>(0);
+        auto result = std::array<TetrominoType, Matrix::width * Matrix::height>{};
+        auto current = static_cast<TetrominoType>(0);
         for (auto& mino : result) {
             mino = current;
-            current = static_cast<ObpfTetrominoType>(
-                    (std::to_underlying(current) + 1)
-                    % (std::to_underlying(ObpfTetrominoType::OBPF_TETROMINO_TYPE_LAST) + 1)
+            current = static_cast<TetrominoType>(
+                    (std::to_underlying(current) + 1) % (std::to_underlying(TetrominoType::Last) + 1)
             );
         }
         return result;
@@ -206,7 +205,7 @@ TEST(NetworkTests, MaximumEventBroadcastMessage) {
     for (auto i = 0; i < std::numeric_limits<std::uint8_t>::max(); ++i) {
         auto events = std::vector<Event>{};
         for (auto j = std::size_t{ 0 }; j < heartbeat_interval; ++j) {
-            events.emplace_back(ObpfKey::OBPF_KEY_LEFT, ObpfEventType::OBPF_PRESSED, 42 - heartbeat_interval + 1 + j);
+            events.emplace_back(Key::Left, EventType::Pressed, 42 - heartbeat_interval + 1 + j);
         }
         events_per_client.emplace_back(static_cast<std::uint8_t>(i), std::move(events));
     }
@@ -280,13 +279,13 @@ TEST(NetworkTests, EventBroadcastMessageWithDuplicateClientIdsFails) {
            << std::uint8_t{ 2 }    // client_count
            << std::uint8_t{ 15 }   // client_id
            << std::uint8_t{ 1 }    // event count
-           << gsl::narrow<std::uint8_t>(ObpfKey::OBPF_KEY_DROP)
-           << gsl::narrow<std::uint8_t>(ObpfEventType::OBPF_PRESSED)
+           << gsl::narrow<std::uint8_t>(Key::Drop)
+           << gsl::narrow<std::uint8_t>(EventType::Pressed)
            << std::uint64_t{ 35 }
            << std::uint8_t{ 15 }   // client_id (duplicate)
            << std::uint8_t{ 1 }    // event count
-           << gsl::narrow<std::uint8_t>(ObpfKey::OBPF_KEY_DROP)
-           << gsl::narrow<std::uint8_t>(ObpfEventType::OBPF_PRESSED)
+           << gsl::narrow<std::uint8_t>(Key::Drop)
+           << gsl::narrow<std::uint8_t>(EventType::Pressed)
            << std::uint64_t{ 35 };
     // clang-format on
     EXPECT_THROW({ std::ignore = send_receive_buffer_and_deserialize(buffer); }, MessageDeserializationError);
