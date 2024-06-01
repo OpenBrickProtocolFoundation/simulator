@@ -1,14 +1,13 @@
 #pragma once
 
 #include "constants.hpp"
-#include "detail/shared_lib_export.hpp"
 #include "message_header.hpp"
 #include "message_types.hpp"
 #include <array>
 #include <memory>
-#include <obpf/constants.h>
-#include <obpf/input.h>
-#include <obpf/tetromino_type.h>
+#include <simulator/input.hpp>
+#include <simulator/matrix.hpp>
+#include <simulator/tetromino_type.hpp>
 #include <sockets/sockets.hpp>
 #include <spdlog/spdlog.h>
 #include <unordered_set>
@@ -26,20 +25,8 @@ class MessageInstantiationError final : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-struct Event final {
-    ObpfKey key;
-    ObpfEventType type;
-    std::uint64_t frame;
+[[nodiscard]] Event deserialize_event(c2k::MessageBuffer& buffer);
 
-    Event(ObpfKey const key, ObpfEventType const type, std::uint64_t const frame)
-        : key{ key },
-          type{ type },
-          frame{ frame } { }
-
-    [[nodiscard]] static Event deserialize(c2k::MessageBuffer& buffer);
-
-    [[nodiscard]] constexpr bool operator==(Event const&) const = default;
-};
 
 struct AbstractMessage {
     virtual ~AbstractMessage() = default;
@@ -48,12 +35,12 @@ struct AbstractMessage {
         return typeid(*this) == typeid(other) and equals(other);
     }
 
-    [[nodiscard]] EXPORT virtual MessageType type() const = 0;
-    [[nodiscard]] EXPORT virtual decltype(MessageHeader::payload_size) payload_size() const = 0;
-    [[nodiscard]] EXPORT virtual c2k::MessageBuffer serialize() const = 0;
+    [[nodiscard]] virtual MessageType type() const = 0;
+    [[nodiscard]] virtual decltype(MessageHeader::payload_size) payload_size() const = 0;
+    [[nodiscard]] virtual c2k::MessageBuffer serialize() const = 0;
 
     // clang-format off
-    [[nodiscard]] EXPORT static std::unique_ptr<AbstractMessage> from_socket(
+    [[nodiscard]] static std::unique_ptr<AbstractMessage> from_socket(
         c2k::ClientSocket& socket,
         std::chrono::steady_clock::duration timeout = std::chrono::seconds{ 2 }
     );
@@ -69,10 +56,10 @@ struct Heartbeat final : AbstractMessage {
 
     Heartbeat(std::uint64_t const frame, std::vector<Event> events) : frame{ frame }, events{ std::move(events) } { }
 
-    [[nodiscard]] EXPORT MessageType type() const override;
-    [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
-    [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static Heartbeat deserialize(c2k::MessageBuffer& buffer);
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static Heartbeat deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size(heartbeat_interval);
@@ -103,16 +90,16 @@ private:
 
 struct GridState final : AbstractMessage {
     std::uint64_t frame;
-    std::array<ObpfTetrominoType, OBPF_MATRIX_WIDTH * OBPF_MATRIX_HEIGHT> grid_contents;
+    std::array<TetrominoType, Matrix::width * Matrix::height> grid_contents;
 
-    GridState(std::uint64_t const frame, std::array<ObpfTetrominoType, 10 * 22> const& grid_contents)
+    GridState(std::uint64_t const frame, std::array<TetrominoType, 10 * 22> const& grid_contents)
         : frame{ frame },
           grid_contents{ grid_contents } { }
 
-    [[nodiscard]] EXPORT MessageType type() const override;
-    [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
-    [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static GridState deserialize(c2k::MessageBuffer& buffer);
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static GridState deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size();
@@ -139,10 +126,10 @@ struct GameStart final : AbstractMessage {
           start_frame{ start_frame },
           random_seed{ random_seed } { }
 
-    [[nodiscard]] EXPORT MessageType type() const override;
-    [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
-    [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static GameStart deserialize(c2k::MessageBuffer& buffer);
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static GameStart deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         return calculate_payload_size();
@@ -220,10 +207,10 @@ struct EventBroadcast final : AbstractMessage {
         }
     }
 
-    [[nodiscard]] EXPORT MessageType type() const override;
-    [[nodiscard]] EXPORT decltype(MessageHeader::payload_size) payload_size() const override;
-    [[nodiscard]] EXPORT c2k::MessageBuffer serialize() const override;
-    [[nodiscard]] EXPORT static EventBroadcast deserialize(c2k::MessageBuffer& buffer);
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static EventBroadcast deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
         auto const sizes = [] {

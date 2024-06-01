@@ -4,10 +4,15 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 enum ObpfKey {
     OBPF_KEY_LEFT,
     OBPF_KEY_RIGHT,
     OBPF_KEY_DROP,
+    OBPF_KEY_ROTATE_CW,
+    OBPF_KEY_ROTATE_CCW,
+    OBPF_KEY_HOLD,
 };
 
 enum ObpfEventType {

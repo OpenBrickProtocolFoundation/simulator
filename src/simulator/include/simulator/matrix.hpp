@@ -3,12 +3,11 @@
 #include "tetromino_type.hpp"
 #include "vec2.hpp"
 #include <array>
-#include <obpf/constants.h>
 
-struct ObpfMatrix final {
+class Matrix final {
 public:
-    static constexpr auto width = OBPF_MATRIX_WIDTH;
-    static constexpr auto height = OBPF_MATRIX_HEIGHT;
+    static constexpr auto width = std::size_t{ 10 };
+    static constexpr auto height = std::size_t{ 22 };
 
 private:
     std::array<TetrominoType, width * height> m_minos{};

@@ -1,7 +1,5 @@
-#include "tetrion.hpp"
-
-
 #include <cassert>
+#include <simulator/tetrion.hpp>
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
@@ -34,7 +32,7 @@ bool ObpfTetrion::is_active_tetromino_position_valid() const {
     }
     auto const mino_positions = get_mino_positions(active_tetromino().value());
     for (auto const position : mino_positions) {
-        if (position.x < 0 or position.x >= ObpfMatrix::width or position.y >= ObpfMatrix::height
+        if (position.x < 0 or position.x >= Matrix::width or position.y >= Matrix::height
             or m_matrix[position] != TetrominoType::Empty) {
             return false;
         }
@@ -43,7 +41,15 @@ bool ObpfTetrion::is_active_tetromino_position_valid() const {
 }
 
 void ObpfTetrion::spawn_next_tetromino() {
-    m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, TetrominoType::O };
+    auto const next_type = m_bags.at(0).tetrominos.at(m_bag_index);
+    if (m_bag_index == std::tuple_size_v<decltype(Bag::tetrominos)> - 1) {
+        m_bag_index = 0;
+        m_bags.at(0) = m_bags.at(1);
+        m_bags.at(1) = Bag{ m_random };
+    } else {
+        ++m_bag_index;
+    }
+    m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
 }
 
 void ObpfTetrion::process_events() {
@@ -51,10 +57,10 @@ void ObpfTetrion::process_events() {
         assert(event.frame >= m_next_frame);
         if (event.frame == m_next_frame) {
             switch (event.type) {
-                case OBPF_PRESSED:
+                case EventType::Pressed:
                     handle_keypress(event.key);
                     break;
-                case OBPF_RELEASED:
+                case EventType::Released:
                     break;
             }
         }
@@ -62,16 +68,25 @@ void ObpfTetrion::process_events() {
     std::erase_if(m_events, [this](auto const& event) { return event.frame <= m_next_frame; });
 }
 
-void ObpfTetrion::handle_keypress(ObpfKey const key) {
+void ObpfTetrion::handle_keypress(Key const key) {
     switch (key) {
-        case OBPF_KEY_LEFT:
+        case Key::Left:
             move_left();
             break;
-        case OBPF_KEY_RIGHT:
+        case Key::Right:
             move_right();
             break;
-        case OBPF_KEY_DROP:
+        case Key::Drop:
             drop();
+            break;
+        case Key::RotateClockwise:
+            rotate_clockwise();
+            break;
+        case Key::RotateCounterClockwise:
+            rotate_counter_clockwise();
+            break;
+        case Key::Hold:
+            // todo
             break;
     }
 }
@@ -108,6 +123,24 @@ void ObpfTetrion::move_down() {
     }
 }
 
+void ObpfTetrion::rotate_clockwise() {
+    if (m_active_tetromino.has_value()) {
+        --m_active_tetromino.value().rotation;
+        if (not is_active_tetromino_position_valid()) {
+            ++m_active_tetromino.value().rotation;
+        }
+    }
+}
+
+void ObpfTetrion::rotate_counter_clockwise() {
+    if (m_active_tetromino.has_value()) {
+        ++m_active_tetromino.value().rotation;
+        if (not is_active_tetromino_position_valid()) {
+            --m_active_tetromino.value().rotation;
+        }
+    }
+}
+
 void ObpfTetrion::drop() {
     if (not active_tetromino().has_value()) {
         return;
@@ -118,4 +151,10 @@ void ObpfTetrion::drop() {
     --m_active_tetromino.value().position.y;
     freeze_and_destroy_active_tetromino();
     spawn_next_tetromino();
+}
+
+[[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(c2k::Random& random) {
+    auto const bag0 = Bag{ random };
+    auto const bag1 = Bag{ random };
+    return std::array{ bag0, bag1 };
 }

@@ -1,16 +1,19 @@
 #pragma once
 
-#include "tetrion.hpp"
 #include <cstdint>
+#include <lib2k/random.hpp>
+#include <simulator/tetrion.hpp>
 #include <sockets/sockets.hpp>
 #include <spdlog/spdlog.h>
 #include <vector>
 
 struct ClientInfo final {
     std::uint8_t id;
-    Tetrion tetrion;
+    ObpfTetrion tetrion;
     std::uint64_t num_frames_simulated{ 0 };
-    std::vector<ObpfEvent> event_buffer;
+    std::vector<Event> event_buffer;
+
+    explicit ClientInfo(std::uint8_t const id, std::uint64_t const seed) : id{ id }, tetrion{ seed } { }
 };
 
 class Server final {
@@ -24,6 +27,7 @@ private:
     std::size_t m_expected_player_count;
     std::uint8_t m_next_client_id = 0;
     std::atomic_flag m_should_stop;
+    c2k::Random::Seed m_seed;
 
 public:
     explicit Server(std::uint16_t const lobby_port)
@@ -34,7 +38,8 @@ public:
                   [this](c2k::ClientSocket client) { accept_client_connection(std::move(client)); }
           ) },
           m_client_infos{ {} },
-          m_broadcasting_thread{ keep_broadcasting, std::ref(*this) } {
+          m_broadcasting_thread{ keep_broadcasting, std::ref(*this) },
+          m_seed{ c2k::Random{}.next_integral<c2k::Random::Seed>() } {
         // todo: timeout
         m_expected_player_count = static_cast<std::size_t>(m_lobby_socket.receive<std::uint16_t>().get());
         spdlog::info("expected player count: {}", m_expected_player_count);
@@ -77,7 +82,7 @@ private:
 
             assert(client_infos.size() == index);
             auto const client_id = m_next_client_id++;
-            client_infos.emplace_back(client_id);
+            client_infos.emplace_back(client_id, m_seed);
 
             assert(m_client_threads.size() == index);
             m_client_threads.emplace_back(process_client, std::ref(*this), index);

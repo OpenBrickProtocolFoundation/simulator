@@ -4,6 +4,7 @@
          VERSION 1.14.0
          OPTIONS
          "INSTALL_GTEST OFF"
+         "BUILD_SHARED_LIBS OFF"
  )
 
  add_executable(test_sandbox sandbox.cpp utils.hpp)

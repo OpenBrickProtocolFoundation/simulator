@@ -1,4 +1,4 @@
-#include "tetromino.hpp"
+#include "include/simulator/tetromino.hpp"
 
 static constexpr std::size_t to_index(TetrominoType const type) {
     switch (type) {

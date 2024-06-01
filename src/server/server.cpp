@@ -1,10 +1,8 @@
 #include "server.hpp"
 #include "network/messages.hpp"
-#include "tetrion.hpp"
 #include <algorithm>
 #include <chrono>
 #include <numeric>
-#include <obpf/simulator.h>
 #include <ranges>
 #include <spdlog/spdlog.h>
 
@@ -33,10 +31,15 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
 
                 auto& tetrion = client_info.tetrion;
                 for (auto const& event : heartbeat_message.events) {
-                    auto const obpf_event = ObpfEvent{ event.key, event.type, event.frame };
+                    auto const obpf_event = Event{ event.key, event.type, event.frame };
                     tetrion.enqueue_event(obpf_event);
                     client_info.event_buffer.push_back(obpf_event);
-                    spdlog::info("enqueueing event: key {}, type {}, frame {}", event.key, event.type, event.frame);
+                    spdlog::info(
+                            "enqueueing event: key {}, type {}, frame {}",
+                            std::to_underlying(event.key),
+                            std::to_underlying(event.type),
+                            event.frame
+                    );
                 }
 
                 auto& num_frames_simulated = client_info.num_frames_simulated;
@@ -101,8 +104,8 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
 
     auto i = std::uint8_t{ 0 };
     for (auto& socket : self.m_client_sockets) {
-        spdlog::info("assigning id {} to client", i);
-        auto const message = GameStart{ i, 180, 42 /* todo: insert actual random seed here */ };
+        spdlog::info("assigning id {} to client and sending seed {}", i, self.m_seed);
+        auto const message = GameStart{ i, 180, self.m_seed };
         socket.send(message.serialize()).wait();
         ++i;
     }
