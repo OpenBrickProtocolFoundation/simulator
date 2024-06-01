@@ -4,6 +4,7 @@
 #include "user.hpp"
 #include <cstdint>
 #include <format>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <string_view>
 #include <tl/expected.hpp>
@@ -77,7 +78,7 @@ struct LobbyList final {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyList, lobbies);
 
-class LobbyServer final {
+class LobbyServerConnection final {
 private:
     std::string m_url;
 
@@ -93,7 +94,7 @@ private:
     }
 
 public:
-    LobbyServer(std::string_view const host, std::uint16_t const port) {
+    LobbyServerConnection(std::string_view const host, std::uint16_t const port) {
         if (host.ends_with('/')) {
             m_url = std::format("{}:{}", host.substr(0, host.length() - 1), port);
         } else {
@@ -101,11 +102,11 @@ public:
         }
     }
 
-    LobbyServer(LobbyServer const& other) = delete;
-    LobbyServer(LobbyServer&& other) noexcept = delete;
-    LobbyServer& operator=(LobbyServer const& other) = delete;
-    LobbyServer& operator=(LobbyServer&& other) noexcept = delete;
-    ~LobbyServer() = default;
+    LobbyServerConnection(LobbyServerConnection const& other) = delete;
+    LobbyServerConnection(LobbyServerConnection&& other) noexcept = delete;
+    LobbyServerConnection& operator=(LobbyServerConnection const& other) = delete;
+    LobbyServerConnection& operator=(LobbyServerConnection&& other) noexcept = delete;
+    ~LobbyServerConnection() = default;
 
     [[nodiscard]] std::optional<User> register_user(std::string username, std::string password);
     [[nodiscard]] std::optional<User> authenticate(std::string username, std::string password);

@@ -9,6 +9,7 @@ extern "C" {
 enum ObpfKey {
     OBPF_KEY_LEFT,
     OBPF_KEY_RIGHT,
+    OBPF_KEY_DOWN,
     OBPF_KEY_DROP,
     OBPF_KEY_ROTATE_CW,
     OBPF_KEY_ROTATE_CCW,

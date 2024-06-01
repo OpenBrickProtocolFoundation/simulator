@@ -5,6 +5,7 @@
 enum class Key {
     Left,
     Right,
+    Down,
     Drop,
     RotateClockwise,
     RotateCounterClockwise,
