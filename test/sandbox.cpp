@@ -28,7 +28,7 @@ struct StartResponse final {
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(StartResponse, port);
 
 static void run_second_user() {
-    auto lobby_server = LobbyServer("127.0.0.1", 5000);
+    auto lobby_server = LobbyServerConnection("127.0.0.1", 5000);
 
     // client
     auto const lobby_info = std::invoke([&] {
@@ -59,7 +59,7 @@ int main() {
     static constexpr auto username = "coder2k";
     static constexpr auto password = "secret";
 
-    auto lobby_server = LobbyServer("127.0.0.1", 5000);
+    auto lobby_server = LobbyServerConnection("127.0.0.1", 5000);
 
     // auto user = lobby_server.register_user("r00tifant", "apple").value();
     auto const user = lobby_server.authenticate(username, password).value();

@@ -76,6 +76,9 @@ void ObpfTetrion::handle_keypress(Key const key) {
         case Key::Right:
             move_right();
             break;
+        case Key::Down:
+            move_down();
+            break;
         case Key::Drop:
             drop();
             break;

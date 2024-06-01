@@ -44,7 +44,7 @@ template<typename Deserialized>
     return std::nullopt;
 }
 
-[[nodiscard]] std::optional<User> LobbyServer::register_user(std::string username, std::string password) {
+[[nodiscard]] std::optional<User> LobbyServerConnection::register_user(std::string username, std::string password) {
     auto const response = Crapper{}.post(endpoint("register")).json(Credentials{ username, password }).send();
     if (response.status() != HttpStatusCode::NoContent) {
         return std::nullopt;
@@ -52,7 +52,7 @@ template<typename Deserialized>
     return authenticate(std::move(username), std::move(password));
 }
 
-[[nodiscard]] std::optional<User> LobbyServer::authenticate(std::string username, std::string password) {
+[[nodiscard]] std::optional<User> LobbyServerConnection::authenticate(std::string username, std::string password) {
     auto const response =
             Crapper{}.post(endpoint("login")).json(Credentials{ std::move(username), std::move(password) }).send();
     if (response.status() != HttpStatusCode::Ok) {
@@ -65,7 +65,7 @@ template<typename Deserialized>
     return User{ std::move(login_response).value().jwt };
 }
 
-void LobbyServer::unregister(User& user) {
+void LobbyServerConnection::unregister(User& user) {
     std::ignore = Crapper{}
                           .post(endpoint("unregister"))
                           .header(HeaderKey::Authorization, std::format("Bearer {}", user.m_token))
@@ -74,7 +74,7 @@ void LobbyServer::unregister(User& user) {
 }
 
 // clang-format off
-[[nodiscard]] tl::expected<Lobby, LobbyCreationError> LobbyServer::create_lobby(
+[[nodiscard]] tl::expected<Lobby, LobbyCreationError> LobbyServerConnection::create_lobby(
     User const& user,
     LobbySettings const& settings
 ) {
@@ -100,7 +100,7 @@ void LobbyServer::unregister(User& user) {
     return Lobby{ std::move(lobby_creation_response).value().id };
 }
 
-[[nodiscard]] tl::expected<TcpPort, GameStartError> LobbyServer::start(User const& user, Lobby const& lobby) {
+[[nodiscard]] tl::expected<TcpPort, GameStartError> LobbyServerConnection::start(User const& user, Lobby const& lobby) {
     if (not user.is_logged_in()) {
         return tl::unexpected{ GameStartError::NotLoggedIn };
     }
@@ -129,7 +129,7 @@ void LobbyServer::unregister(User& user) {
     return TcpPort{ start_response.value().port };
 }
 
-[[nodiscard]] LobbyList LobbyServer::lobbies() {
+[[nodiscard]] LobbyList LobbyServerConnection::lobbies() {
     auto const response = Crapper{}.get(endpoint("lobbies")).send();
     if (response.status() != HttpStatusCode::Ok) {
         throw std::runtime_error{ "internal lobby error" };
@@ -138,7 +138,7 @@ void LobbyServer::unregister(User& user) {
     return nlohmann::json::parse(response.body()).get<LobbyList>();
 }
 
-[[nodiscard]] tl::expected<void, LobbyDestructionError> LobbyServer::destroy_lobby(User const& user, Lobby&& lobby) {
+[[nodiscard]] tl::expected<void, LobbyDestructionError> LobbyServerConnection::destroy_lobby(User const& user, Lobby&& lobby) {
     if (not user.is_logged_in()) {
         return tl::unexpected{ LobbyDestructionError::NotLoggedIn };
     }
@@ -158,7 +158,7 @@ void LobbyServer::unregister(User& user) {
     }
 }
 
-[[nodiscard]] tl::expected<Lobby, LobbyJoinError> LobbyServer::join(User const& user, LobbyInfo const& lobby_info) {
+[[nodiscard]] tl::expected<Lobby, LobbyJoinError> LobbyServerConnection::join(User const& user, LobbyInfo const& lobby_info) {
     if (not user.is_logged_in()) {
         return tl::unexpected{ LobbyJoinError::NotLoggedIn };
     }
@@ -178,7 +178,7 @@ void LobbyServer::unregister(User& user) {
     return tl::unexpected{ LobbyJoinError::Unknown };
 }
 
-[[nodiscard]] tl::expected<TcpPort, SetClientReadyError> LobbyServer::set_ready(User const& user, Lobby const& lobby) {
+[[nodiscard]] tl::expected<TcpPort, SetClientReadyError> LobbyServerConnection::set_ready(User const& user, Lobby const& lobby) {
     if (not user.is_logged_in()) {
         return tl::unexpected{ SetClientReadyError::NotLoggedIn };
     }

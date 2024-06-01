@@ -12,6 +12,8 @@ add_library(obpf
         include/obpf/tetromino.h
         include/obpf/vec2.h
         simulator.cpp
+        include/obpf/lobby.h
+        lobby.cpp
 )
 
 target_compile_definitions(obpf PRIVATE "simulator_EXPORTS")
@@ -21,6 +23,7 @@ generate_export_header(obpf)
 target_link_libraries(obpf
         PRIVATE
         simulator
+        network
         spdlog::spdlog
 )
 

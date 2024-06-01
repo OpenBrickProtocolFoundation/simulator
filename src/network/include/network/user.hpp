@@ -1,9 +1,10 @@
 #pragma once
 
 #include <string>
+#include <stdexcept>
 
 class User final {
-    friend class LobbyServer;
+    friend class LobbyServerConnection;
 
 private:
     std::string m_token;

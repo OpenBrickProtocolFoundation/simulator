@@ -16,7 +16,6 @@ target_link_system_libraries(network
         c2k_sockets
         spdlog::spdlog
         tl::expected
-        PRIVATE
         crapper
 )
 target_include_directories(network PUBLIC include)

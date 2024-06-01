@@ -3,7 +3,7 @@
 #include <string>
 
 class Lobby final {
-    friend class LobbyServer;
+    friend class LobbyServerConnection;
 
 private:
     std::string id;
