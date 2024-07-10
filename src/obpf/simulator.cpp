@@ -1,14 +1,18 @@
-#include <memory>
 #include <obpf/simulator.h>
+#include <spdlog/spdlog.h>
+#include <gsl/gsl>
+#include <memory>
 #include <simulator/matrix.hpp>
 #include <simulator/tetrion.hpp>
-#include <spdlog/spdlog.h>
 
 ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
     return new ObpfTetrion{ seed };
 }
 
-bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, ObpfTetromino* const out_tetromino) {
+bool obpf_tetrion_try_get_active_tetromino(
+    ObpfTetrion const* const tetrion,
+    ObpfTetromino* const out_tetromino
+) {
     auto const active_tetromino = tetrion->active_tetromino();
     if (not active_tetromino.has_value()) {
         return false;
@@ -16,10 +20,10 @@ bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, Obp
     auto const& mino_positions = get_mino_positions(active_tetromino.value());
     auto const result = ObpfTetromino{
         .mino_positions = {
-            ObpfVec2{ mino_positions.at(0).x, mino_positions.at(0).y },
-            ObpfVec2{ mino_positions.at(1).x, mino_positions.at(1).y },
-            ObpfVec2{ mino_positions.at(2).x, mino_positions.at(2).y },
-            ObpfVec2{ mino_positions.at(3).x, mino_positions.at(3).y },
+            ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(0).x), gsl::narrow<std::uint8_t>(mino_positions.at(0).y), },
+            ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(1).x), gsl::narrow<std::uint8_t>(mino_positions.at(1).y), },
+            ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(2).x), gsl::narrow<std::uint8_t>(mino_positions.at(2).y), },
+            ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(3).x), gsl::narrow<std::uint8_t>(mino_positions.at(3).y), },
         },
         .type = static_cast<ObpfTetrominoType>(active_tetromino->type),
     };
