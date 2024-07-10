@@ -17,6 +17,11 @@ target_include_directories(simulator
         ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+target_link_libraries(simulator
+        PRIVATE
+        obpf_simulator_project_options
+)
+
 target_link_system_libraries(simulator
         PUBLIC
         Microsoft.GSL::GSL
