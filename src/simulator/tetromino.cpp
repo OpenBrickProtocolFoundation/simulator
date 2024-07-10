@@ -1,4 +1,6 @@
 #include "include/simulator/tetromino.hpp"
+#include <array>
+#include <simulator/vec2.hpp>
 
 static constexpr std::size_t to_index(TetrominoType const type) {
     switch (type) {
@@ -75,7 +77,8 @@ static constexpr auto tetromino_patterns = std::array{
 // clang-format on
 
 [[nodiscard]] std::array<Vec2, 4> get_mino_positions(Tetromino const& tetromino) {
-    auto result = tetromino_patterns.at(to_index(tetromino.type)).at(static_cast<std::size_t>(tetromino.rotation));
+    auto result = tetromino_patterns.at(to_index(tetromino.type))
+                      .at(static_cast<std::size_t>(tetromino.rotation));
     for (auto& position : result) {
         position = position + tetromino.position;
     }

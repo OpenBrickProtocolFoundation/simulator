@@ -1,4 +1,5 @@
 #include <cassert>
+#include <gsl/gsl>
 #include <simulator/tetrion.hpp>
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
@@ -7,6 +8,7 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
             move_down();
         }
         process_events();
+        clear_lines();
         ++m_next_frame;
     }
 }
@@ -154,6 +156,21 @@ void ObpfTetrion::drop() {
     --m_active_tetromino.value().position.y;
     freeze_and_destroy_active_tetromino();
     spawn_next_tetromino();
+}
+
+void ObpfTetrion::clear_lines() {
+    for (auto i = std::size_t{ 0 }; i < Matrix::height;) {
+        auto const line = Matrix::height - i - 1;
+        if (not m_matrix.is_line_full(line)) {
+            ++i;
+            continue;
+        }
+
+        for (auto destination_line = line; destination_line > 0; --destination_line) {
+            m_matrix.copy_line(destination_line, destination_line - 1);
+        }
+        m_matrix.fill(0, TetrominoType::Empty);
+    }
 }
 
 [[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(c2k::Random& random) {

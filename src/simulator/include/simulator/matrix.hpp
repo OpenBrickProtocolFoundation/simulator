@@ -1,8 +1,9 @@
 #pragma once
 
+#include <array>
+#include <gsl/gsl>
 #include "tetromino_type.hpp"
 #include "vec2.hpp"
-#include <array>
 
 class Matrix final {
 public:
@@ -13,6 +14,43 @@ private:
     std::array<TetrominoType, width * height> m_minos{};
 
 public:
+    void copy_line(std::size_t const destination, std::size_t const source) {
+        for (auto column = std::size_t{ 0 }; column < width; ++column) {
+            auto const destination_vec = Vec2{
+                gsl::narrow<decltype(Vec2::x)>(column),
+                gsl::narrow<decltype(Vec2::y)>(destination),
+            };
+            auto const source_vec = Vec2{
+                gsl::narrow<decltype(Vec2::x)>(column),
+                gsl::narrow<decltype(Vec2::y)>(source),
+            };
+            (*this)[destination_vec] = (*this)[source_vec];
+        }
+    }
+
+    void fill(std::size_t const line, TetrominoType const type) {
+        for (auto column = std::size_t{ 0 }; column < width; ++column) {
+            auto const position = Vec2{
+                gsl::narrow<decltype(Vec2::x)>(column),
+                gsl::narrow<decltype(Vec2::y)>(line),
+            };
+            (*this)[position] = type;
+        }
+    }
+
+    [[nodiscard]] bool is_line_full(std::size_t const line) const {
+        for (auto column = std::size_t{ 0 }; column < width; ++column) {
+            auto const position = Vec2{
+                gsl::narrow<decltype(Vec2::x)>(column),
+                gsl::narrow<decltype(Vec2::y)>(line),
+            };
+            if ((*this)[position] == TetrominoType::Empty) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     [[nodiscard]] TetrominoType operator[](Vec2 const index) const {
         return m_minos.at(index.y * width + index.x);
     }

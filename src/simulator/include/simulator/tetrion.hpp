@@ -52,5 +52,6 @@ private:
     void rotate_clockwise();
     void rotate_counter_clockwise();
     void drop();
+    void clear_lines();
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
 };
