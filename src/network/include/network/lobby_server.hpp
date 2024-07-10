@@ -53,13 +53,18 @@ enum class SetClientReadyError {
     Unknown,
 };
 
+enum class LobbyDetailsError {
+    NotLoggedIn,
+    LobbyNotFoundOrClosed,
+    Unknown,
+};
+
 enum class TcpPort : std::uint16_t {};
 
 struct PlayerInfo final {
     std::string id;
     std::string name;
 };
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PlayerInfo, id, name);
 
 struct LobbyInfo final {
@@ -69,14 +74,28 @@ struct LobbyInfo final {
     std::uint16_t num_players_in_lobby{};
     PlayerInfo host_info;
 };
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyInfo, id, name, size, num_players_in_lobby, host_info);
 
 struct LobbyList final {
     std::vector<LobbyInfo> lobbies;
 };
-
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyList, lobbies);
+
+struct ClientPlayerInfo final {
+    std::string id;
+    std::string name;
+    bool is_ready{};
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ClientPlayerInfo, id, name, is_ready);
+
+struct LobbyDetails final {
+    std::string id;
+    std::string name;
+    std::uint16_t size{};
+    std::vector<ClientPlayerInfo> client_infos;
+    PlayerInfo host_info;
+};
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LobbyDetails, id, name, size, client_infos, host_info);
 
 class LobbyServerConnection final {
 private:
@@ -117,4 +136,10 @@ public:
     [[nodiscard]] tl::expected<void, LobbyDestructionError> destroy_lobby(User const& user, Lobby&& lobby);
     [[nodiscard]] tl::expected<Lobby, LobbyJoinError> join(User const& user, LobbyInfo const& lobby_info);
     [[nodiscard]] tl::expected<TcpPort, SetClientReadyError> set_ready(User const& user, Lobby const& lobby);
+    // clang-format off
+    [[nodiscard]] tl::expected<LobbyDetails, LobbyDetailsError> lobby_details(
+        User const& user,
+        LobbyInfo const& lobby_info
+    );
+    // clang-format on
 };

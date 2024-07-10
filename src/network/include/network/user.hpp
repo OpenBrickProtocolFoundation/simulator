@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <stdexcept>
+#include <string>
 
 class User final {
     friend class LobbyServerConnection;
@@ -9,7 +9,8 @@ class User final {
 private:
     std::string m_token;
 
-    explicit User(std::string token) : m_token{ std::move(token) } { }
+    explicit User(std::string token)
+        : m_token{ std::move(token) } {}
 
     [[nodiscard]] std::string const& auth_token() const {
         if (not is_logged_in()) {
