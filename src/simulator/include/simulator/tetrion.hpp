@@ -49,6 +49,7 @@ private:
     void move_left();
     void move_right();
     void move_down();
+    void rotate(RotationDirection direction);
     void rotate_clockwise();
     void rotate_counter_clockwise();
     void drop();

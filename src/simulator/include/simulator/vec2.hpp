@@ -21,5 +21,15 @@ struct Vec2 final {
         return Vec2{ self.x - other.x, self.y - other.y };
     }
 
+    constexpr Vec2& operator+=(Vec2 const other) {
+        *this = *this + other;
+        return *this;
+    }
+
+    constexpr Vec2& operator-=(Vec2 const other) {
+        *this = *this - other;
+        return *this;
+    }
+
     [[nodiscard]] friend auto operator<=>(Vec2 const&, Vec2 const&) = default;
 };

@@ -1,6 +1,7 @@
 #include <cassert>
 #include <gsl/gsl>
 #include <simulator/tetrion.hpp>
+#include <simulator/wallkicks.hpp>
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
@@ -128,22 +129,32 @@ void ObpfTetrion::move_down() {
     }
 }
 
-void ObpfTetrion::rotate_clockwise() {
-    if (m_active_tetromino.has_value()) {
-        --m_active_tetromino.value().rotation;
-        if (not is_active_tetromino_position_valid()) {
-            ++m_active_tetromino.value().rotation;
-        }
+void ObpfTetrion::rotate(RotationDirection const direction) {
+    if (not m_active_tetromino.has_value()) {
+        return;
     }
+    auto const from_rotation = m_active_tetromino->rotation;
+    auto const to_rotation = from_rotation + direction;
+    m_active_tetromino->rotation = to_rotation;
+
+    auto const& wall_kick_table = get_wall_kick_table(m_active_tetromino->type, from_rotation, to_rotation);
+    for (auto const translation : wall_kick_table) {
+        m_active_tetromino->position += translation;
+        if (is_active_tetromino_position_valid()) {
+            return;
+        }
+        m_active_tetromino->position -= translation;
+    }
+
+    m_active_tetromino->rotation = from_rotation;
+}
+
+void ObpfTetrion::rotate_clockwise() {
+    rotate(RotationDirection::Clockwise);
 }
 
 void ObpfTetrion::rotate_counter_clockwise() {
-    if (m_active_tetromino.has_value()) {
-        ++m_active_tetromino.value().rotation;
-        if (not is_active_tetromino_position_valid()) {
-            --m_active_tetromino.value().rotation;
-        }
-    }
+    rotate(RotationDirection::CounterClockwise);
 }
 
 void ObpfTetrion::drop() {
