@@ -22,8 +22,8 @@ inline Rotation& operator++(Rotation& rotation) {
 
 inline Rotation& operator--(Rotation& rotation) {
     rotation = static_cast<Rotation>(
-            (static_cast<int>(rotation) + static_cast<int>(Rotation::LastRotation))
-            % (static_cast<int>(Rotation::LastRotation) + 1)
+        (static_cast<int>(rotation) + static_cast<int>(Rotation::LastRotation))
+        % (static_cast<int>(Rotation::LastRotation) + 1)
     );
     return rotation;
 }
@@ -48,4 +48,19 @@ inline Rotation& operator--(Rotation& rotation) {
 
 [[nodiscard]] inline Rotation operator-(Rotation const rotation, int const offset) {
     return rotation + (-offset);
+}
+
+enum class RotationDirection {
+    CounterClockwise,
+    Clockwise,
+};
+
+[[nodiscard]] inline Rotation operator+(Rotation const rotation, RotationDirection const direction) {
+    switch (direction) {
+        case RotationDirection::CounterClockwise:
+            return rotation - 1;
+        case RotationDirection::Clockwise:
+            return rotation + 1;
+    }
+    std::unreachable();
 }

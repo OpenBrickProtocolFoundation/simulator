@@ -9,6 +9,10 @@ add_library(simulator STATIC
         include/simulator/vec2.hpp
         tetrion.cpp
         tetromino.cpp
+        include/simulator/wallkicks.hpp
+        wallkicks.cpp
+        include/simulator/delayed_auto_shift.hpp
+        include/simulator/lock_delay.hpp
 )
 
 target_include_directories(simulator
@@ -28,6 +32,7 @@ target_link_system_libraries(simulator
         lib2k
         PRIVATE
         spdlog::spdlog
+        tl::optional
 )
 
 # Disable exceptions

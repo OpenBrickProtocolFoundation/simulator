@@ -38,6 +38,16 @@ function(obpf_simulator_setup_dependencies)
             "BUILD_SHARED_LIBS OFF"
     )
     CPMAddPackage(
+            NAME TL_OPTIONAL
+            GITHUB_REPOSITORY TartanLlama/optional
+            VERSION 1.1.0
+            OPTIONS
+            "OPTIONAL_BUILD_PACKAGE OFF"
+            "OPTIONAL_BUILD_TESTS OFF"
+            "OPTIONAL_BUILD_PACKAGE_DEB OFF"
+            "BUILD_SHARED_LIBS OFF"
+    )
+    CPMAddPackage(
             NAME CRAPPER
             GITHUB_REPOSITORY mgerhold/crapper
             VERSION 0.3.0
