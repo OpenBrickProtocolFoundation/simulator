@@ -5,6 +5,7 @@ AlignArrayOfStructures: Right
 AlignConsecutiveAssignments: None
 AlignEscapedNewlines: DontAlign
 AlignOperands: Align
+AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: Empty
