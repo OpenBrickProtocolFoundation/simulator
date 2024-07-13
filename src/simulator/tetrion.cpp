@@ -7,8 +7,9 @@
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
         process_events();
+
         if (m_next_frame == m_next_gravity_frame) {
-            move_down();
+            move_down(m_is_soft_dropping ? DownMovementType::SoftDrop : DownMovementType::Gravity);
             auto const gravity_delay =
                 m_is_soft_dropping
                     ? std::max(
@@ -17,12 +18,28 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
                       )
                     : gravity_delay_by_level(level());
             m_next_gravity_frame += gravity_delay;
+        } else {
+            // todo: if the piece could be moved down here, then we have to notify the lock delay state
         }
-        auto const auto_shift_movement = m_auto_shift_state.poll();
-        if (auto_shift_movement == AutoShiftDirection::Left) {
-            move_left();
-        } else if (auto_shift_movement == AutoShiftDirection::Right) {
-            move_right();
+
+        switch (m_lock_delay_state.poll()) {
+            case LockDelayPollResult::ShouldLock:
+                freeze_and_destroy_active_tetromino();
+                spawn_next_tetromino();
+                break;
+            case LockDelayPollResult::ShouldNotLock:
+                break;
+        }
+
+        switch (m_auto_shift_state.poll()) {
+            case AutoShiftDirection::Left:
+                move_left();
+                break;
+            case AutoShiftDirection::Right:
+                move_right();
+                break;
+            case AutoShiftDirection::None:
+                break;
         }
         clear_lines();
         ++m_next_frame;
@@ -144,7 +161,9 @@ void ObpfTetrion::move_left() {
         return;
     }
     --m_active_tetromino.value().position.x;
-    if (not is_active_tetromino_position_valid()) {
+    if (is_active_tetromino_position_valid()) {
+        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+    } else {
         ++m_active_tetromino.value().position.x;
     }
 }
@@ -154,20 +173,30 @@ void ObpfTetrion::move_right() {
         return;
     }
     ++m_active_tetromino.value().position.x;
-    if (not is_active_tetromino_position_valid()) {
+    if (is_active_tetromino_position_valid()) {
+        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+    } else {
         --m_active_tetromino.value().position.x;
     }
 }
 
-void ObpfTetrion::move_down() {
+void ObpfTetrion::move_down(DownMovementType const movement_type) {
     if (not active_tetromino().has_value()) {
         return;
     }
     ++m_active_tetromino.value().position.y;
-    if (not is_active_tetromino_position_valid()) {
+    if (is_active_tetromino_position_valid()) {
+        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::MovedDown);
+    } else {
         --m_active_tetromino.value().position.y;
-        freeze_and_destroy_active_tetromino();
-        spawn_next_tetromino();
+        switch (movement_type) {
+            case DownMovementType::Gravity:
+                m_lock_delay_state.on_gravity_lock();
+                break;
+            case DownMovementType::SoftDrop:
+                m_lock_delay_state.on_force_lock();
+                break;
+        }
     }
 }
 
@@ -183,6 +212,7 @@ void ObpfTetrion::rotate(RotationDirection const direction) {
     for (auto const translation : wall_kick_table) {
         m_active_tetromino->position += translation;
         if (is_active_tetromino_position_valid()) {
+            m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
             return;
         }
         m_active_tetromino->position -= translation;
@@ -207,8 +237,7 @@ void ObpfTetrion::drop() {
         ++m_active_tetromino.value().position.y;
     } while (is_active_tetromino_position_valid());
     --m_active_tetromino.value().position.y;
-    freeze_and_destroy_active_tetromino();
-    spawn_next_tetromino();
+    m_lock_delay_state.on_force_lock();
 }
 
 void ObpfTetrion::clear_lines() {

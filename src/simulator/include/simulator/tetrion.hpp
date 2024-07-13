@@ -8,6 +8,7 @@
 #include "bag.hpp"
 #include "delayed_auto_shift.hpp"
 #include "input.hpp"
+#include "lock_delay.hpp"
 #include "matrix.hpp"
 #include "tetromino.hpp"
 
@@ -24,7 +25,8 @@ private:
     std::array<Bag, 2> m_bags;
     usize m_bag_index = 0;
     DelayedAutoShiftState m_auto_shift_state;
-    u32 m_lines_cleared = 0;
+    LockDelayState m_lock_delay_state;
+    u32 m_lines_cleared = 200;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
 
@@ -36,6 +38,11 @@ private:
     }
 
 public:
+    enum class DownMovementType {
+        Gravity,
+        SoftDrop,
+    };
+
     explicit ObpfTetrion(std::uint64_t const seed)
         : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
@@ -62,7 +69,7 @@ private:
     void handle_key_release(Key key);
     void move_left();
     void move_right();
-    void move_down();
+    void move_down(DownMovementType movement_type);
     void rotate(RotationDirection direction);
     void rotate_clockwise();
     void rotate_counter_clockwise();
