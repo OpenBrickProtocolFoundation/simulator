@@ -58,9 +58,9 @@ enum class RotationDirection {
 [[nodiscard]] inline Rotation operator+(Rotation const rotation, RotationDirection const direction) {
     switch (direction) {
         case RotationDirection::CounterClockwise:
-            return rotation + 1;
-        case RotationDirection::Clockwise:
             return rotation - 1;
+        case RotationDirection::Clockwise:
+            return rotation + 1;
     }
     std::unreachable();
 }
