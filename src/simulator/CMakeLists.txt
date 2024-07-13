@@ -11,6 +11,7 @@ add_library(simulator STATIC
         tetromino.cpp
         include/simulator/wallkicks.hpp
         wallkicks.cpp
+        include/simulator/delayed_auto_shift.hpp
 )
 
 target_include_directories(simulator

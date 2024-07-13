@@ -1,14 +1,15 @@
 #pragma once
 
-#include "bag.hpp"
-#include "input.hpp"
-#include "matrix.hpp"
-#include "tetromino.hpp"
 #include <cstdint>
 #include <lib2k/random.hpp>
 #include <lib2k/types.hpp>
 #include <optional>
 #include <vector>
+#include "bag.hpp"
+#include "delayed_auto_shift.hpp"
+#include "input.hpp"
+#include "matrix.hpp"
+#include "tetromino.hpp"
 
 struct ObpfTetrion final {
 private:
@@ -23,8 +24,11 @@ private:
     std::array<Bag, 2> m_bags;
     usize m_bag_index = 0;
 
+    DelayedAutoShiftState m_auto_shift_state;
+
 public:
-    explicit ObpfTetrion(std::uint64_t const seed) : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
+    explicit ObpfTetrion(std::uint64_t const seed)
+        : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
         spawn_next_tetromino();
     }
@@ -45,7 +49,8 @@ private:
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
     void spawn_next_tetromino();
     void process_events();
-    void handle_keypress(Key key);
+    void handle_key_press(Key key);
+    void handle_key_release(Key key);
     void move_left();
     void move_right();
     void move_down();

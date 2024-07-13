@@ -9,6 +9,12 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
             move_down();
         }
         process_events();
+        auto const auto_shift_movement = m_auto_shift_state.poll();
+        if (auto_shift_movement == AutoShiftDirection::Left) {
+            move_left();
+        } else if (auto_shift_movement == AutoShiftDirection::Right) {
+            move_right();
+        }
         clear_lines();
         ++m_next_frame;
     }
@@ -61,9 +67,10 @@ void ObpfTetrion::process_events() {
         if (event.frame == m_next_frame) {
             switch (event.type) {
                 case EventType::Pressed:
-                    handle_keypress(event.key);
+                    handle_key_press(event.key);
                     break;
                 case EventType::Released:
+                    handle_key_release(event.key);
                     break;
             }
         }
@@ -71,13 +78,13 @@ void ObpfTetrion::process_events() {
     std::erase_if(m_events, [this](auto const& event) { return event.frame <= m_next_frame; });
 }
 
-void ObpfTetrion::handle_keypress(Key const key) {
+void ObpfTetrion::handle_key_press(Key const key) {
     switch (key) {
         case Key::Left:
-            move_left();
+            m_auto_shift_state.left_pressed();
             break;
         case Key::Right:
-            move_right();
+            m_auto_shift_state.right_pressed();
             break;
         case Key::Down:
             move_down();
@@ -95,6 +102,27 @@ void ObpfTetrion::handle_keypress(Key const key) {
             // todo
             break;
     }
+}
+
+void ObpfTetrion::handle_key_release(Key const key) {
+    switch (key) {
+        case Key::Left:
+            m_auto_shift_state.left_released();
+            return;
+        case Key::Right:
+            m_auto_shift_state.right_released();
+            return;
+        case Key::Down:
+            // todo: implement
+            return;
+        case Key::Drop:
+        case Key::RotateClockwise:
+        case Key::RotateCounterClockwise:
+        case Key::Hold:
+            // releasing these keys does nothing, so we can ignore them
+            return;
+    }
+    std::unreachable();
 }
 
 void ObpfTetrion::move_left() {
