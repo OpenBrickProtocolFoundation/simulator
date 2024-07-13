@@ -18,13 +18,22 @@ private:
 
     Matrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
-    std::uint64_t m_next_frame = 0;
+    u64 m_next_frame = 0;
     std::vector<Event> m_events;
     c2k::Random m_random;
     std::array<Bag, 2> m_bags;
     usize m_bag_index = 0;
-
     DelayedAutoShiftState m_auto_shift_state;
+    u32 m_lines_cleared = 0;
+    u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
+    bool m_is_soft_dropping = false;
+
+    static constexpr u64 gravity_delay_by_level(u32 const level) {
+        constexpr auto delays = std::array<u64, 30>{
+            48, 43, 38, 33, 28, 23, 18, 13, 8, 6, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+        };
+        return delays.at(std::min(static_cast<usize>(level), delays.size() - 1));
+    }
 
 public:
     explicit ObpfTetrion(std::uint64_t const seed)
@@ -60,4 +69,8 @@ private:
     void drop();
     void clear_lines();
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
+
+    [[nodiscard]] u32 level() const {
+        return m_lines_cleared / 10;
+    }
 };

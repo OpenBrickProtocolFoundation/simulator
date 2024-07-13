@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <cassert>
 #include <gsl/gsl>
 #include <simulator/tetrion.hpp>
@@ -5,10 +6,18 @@
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
-        if (m_next_frame % 28 == 0) {
-            move_down();
-        }
         process_events();
+        if (m_next_frame == m_next_gravity_frame) {
+            move_down();
+            auto const gravity_delay =
+                m_is_soft_dropping
+                    ? std::max(
+                          u64{ 1 },
+                          static_cast<u64>(std::round(static_cast<double>(gravity_delay_by_level(level())) / 20.0))
+                      )
+                    : gravity_delay_by_level(level());
+            m_next_gravity_frame += gravity_delay;
+        }
         auto const auto_shift_movement = m_auto_shift_state.poll();
         if (auto_shift_movement == AutoShiftDirection::Left) {
             move_left();
@@ -59,6 +68,9 @@ void ObpfTetrion::spawn_next_tetromino() {
         ++m_bag_index;
     }
     m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
+
+    m_is_soft_dropping = false;
+    m_next_gravity_frame = m_next_frame + gravity_delay_by_level(level());
 }
 
 void ObpfTetrion::process_events() {
@@ -87,7 +99,8 @@ void ObpfTetrion::handle_key_press(Key const key) {
             m_auto_shift_state.right_pressed();
             break;
         case Key::Down:
-            move_down();
+            m_is_soft_dropping = true;
+            m_next_gravity_frame = m_next_frame;
             break;
         case Key::Drop:
             drop();
@@ -113,7 +126,8 @@ void ObpfTetrion::handle_key_release(Key const key) {
             m_auto_shift_state.right_released();
             return;
         case Key::Down:
-            // todo: implement
+            m_is_soft_dropping = false;
+            m_next_gravity_frame = m_next_frame + gravity_delay_by_level(level());
             return;
         case Key::Drop:
         case Key::RotateClockwise:
@@ -203,6 +217,12 @@ void ObpfTetrion::clear_lines() {
         if (not m_matrix.is_line_full(line)) {
             ++i;
             continue;
+        }
+
+        auto const old_level = level();
+        ++m_lines_cleared;
+        if (level() > old_level) {
+            spdlog::info("changed to level {}", level());
         }
 
         for (auto destination_line = line; destination_line > 0; --destination_line) {
