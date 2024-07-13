@@ -38,10 +38,25 @@ public:
     }
 
     /**
-     * Call this function when you would normally force lock the tetromino, i.e. when performing a hard drop
-     * or a soft drop while being at the bottom (but don't actually force lock it).
+     * Call this function when you would normally lock the tetromino because of a soft drop
+     * (but don't actually lock it).
      */
-    void on_force_lock() {
+    void on_soft_drop_lock() {
+        m_can_lock = true;
+        if (not m_delay_active) {
+            m_delay_active = true;
+            m_delay_counter = delay;
+            m_num_lock_delays_executed = 1;
+        } else {
+            on_hard_drop_lock();
+        }
+    }
+
+    /**
+     * Call this function when you would normally force lock the tetromino because of a hard drop
+     * (but don't actually force lock it).
+     */
+    void on_hard_drop_lock() {
         m_can_lock = true;
         m_delay_active = true;
         m_delay_counter = 1;  // this forces the tetromino to lock immediately

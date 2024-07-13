@@ -196,7 +196,8 @@ void ObpfTetrion::move_down(DownMovementType const movement_type) {
                 m_lock_delay_state.on_gravity_lock();
                 break;
             case DownMovementType::SoftDrop:
-                m_lock_delay_state.on_force_lock();
+                m_lock_delay_state.on_soft_drop_lock();
+                m_is_soft_dropping = false;
                 break;
         }
     }
@@ -239,7 +240,7 @@ void ObpfTetrion::drop() {
         ++m_active_tetromino.value().position.y;
     } while (is_active_tetromino_position_valid());
     --m_active_tetromino.value().position.y;
-    m_lock_delay_state.on_force_lock();
+    m_lock_delay_state.on_hard_drop_lock();
 }
 
 void ObpfTetrion::clear_lines() {
