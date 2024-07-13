@@ -19,6 +19,7 @@ private:
 
     Matrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
+    std::optional<Tetromino> m_ghost_tetromino;
     u64 m_next_frame = 0;
     std::vector<Event> m_events;
     c2k::Random m_random;
@@ -26,7 +27,7 @@ private:
     usize m_bag_index = 0;
     DelayedAutoShiftState m_auto_shift_state;
     LockDelayState m_lock_delay_state;
-    u32 m_lines_cleared = 200;
+    u32 m_lines_cleared = 0;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
 
@@ -57,11 +58,16 @@ public:
         return m_active_tetromino;
     }
 
+    [[nodiscard]] std::optional<Tetromino> ghost_tetromino() const {
+        return m_ghost_tetromino;
+    }
+
     void simulate_up_until(std::uint64_t frame);
     void enqueue_event(Event const& event);
 
 private:
     void freeze_and_destroy_active_tetromino();
+    [[nodiscard]] bool is_tetromino_position_valid(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
     void spawn_next_tetromino();
     void process_events();
@@ -75,9 +81,8 @@ private:
     void rotate_counter_clockwise();
     void drop();
     void clear_lines();
-    [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
+    [[nodiscard]] u32 level() const;
+    void refresh_ghost_tetromino();
 
-    [[nodiscard]] u32 level() const {
-        return m_lines_cleared / 10;
-    }
+    [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
 };

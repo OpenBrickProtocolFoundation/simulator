@@ -5,19 +5,23 @@
 #include <simulator/matrix.hpp>
 #include <simulator/tetrion.hpp>
 
-ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
-    return new ObpfTetrion{ seed };
-}
+enum class TetrominoSelection {
+    ActiveTetromino,
+    GhostTetromino,
+};
 
-bool obpf_tetrion_try_get_active_tetromino(
+[[nodiscard]] static bool try_get_tetromino(
     ObpfTetrion const* const tetrion,
-    ObpfTetromino* const out_tetromino
+    ObpfTetromino* const out_tetromino,
+    TetrominoSelection const selection
 ) {
-    auto const active_tetromino = tetrion->active_tetromino();
-    if (not active_tetromino.has_value()) {
+    auto const tetromino =
+        (selection == TetrominoSelection::ActiveTetromino ? tetrion->active_tetromino() : tetrion->ghost_tetromino());
+
+    if (not tetromino.has_value()) {
         return false;
     }
-    auto const& mino_positions = get_mino_positions(active_tetromino.value());
+    auto const& mino_positions = get_mino_positions(tetromino.value());
     auto const result = ObpfTetromino{
         .mino_positions = {
             ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(0).x), gsl::narrow<std::uint8_t>(mino_positions.at(0).y), },
@@ -25,10 +29,22 @@ bool obpf_tetrion_try_get_active_tetromino(
             ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(2).x), gsl::narrow<std::uint8_t>(mino_positions.at(2).y), },
             ObpfVec2{ gsl::narrow<std::uint8_t>(mino_positions.at(3).x), gsl::narrow<std::uint8_t>(mino_positions.at(3).y), },
         },
-        .type = static_cast<ObpfTetrominoType>(active_tetromino->type),
+        .type = static_cast<ObpfTetrominoType>(tetromino->type),
     };
     *out_tetromino = result;
     return true;
+}
+
+ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
+    return new ObpfTetrion{ seed };
+}
+
+bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, ObpfTetromino* const out_tetromino) {
+    return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::ActiveTetromino);
+}
+
+bool obpf_tetrion_try_get_ghost_tetromino(ObpfTetrion const* tetrion, ObpfTetromino* out_tetromino) {
+    return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::GhostTetromino);
 }
 
 void obpf_tetrion_simulate_up_until(ObpfTetrion* const tetrion, uint64_t const frame) {

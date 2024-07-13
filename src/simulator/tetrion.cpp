@@ -18,8 +18,6 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
                       )
                     : gravity_delay_by_level(level());
             m_next_gravity_frame += gravity_delay;
-        } else {
-            // todo: if the piece could be moved down here, then we have to notify the lock delay state
         }
 
         switch (m_lock_delay_state.poll()) {
@@ -42,6 +40,9 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
                 break;
         }
         clear_lines();
+
+        refresh_ghost_tetromino();
+
         ++m_next_frame;
     }
 }
@@ -61,11 +62,8 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     m_active_tetromino = std::nullopt;
 }
 
-bool ObpfTetrion::is_active_tetromino_position_valid() const {
-    if (not active_tetromino().has_value()) {
-        return true;
-    }
-    auto const mino_positions = get_mino_positions(active_tetromino().value());
+[[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
+    auto const mino_positions = get_mino_positions(tetromino);
     for (auto const position : mino_positions) {
         if (position.x < 0 or position.x >= Matrix::width or position.y >= Matrix::height
             or m_matrix[position] != TetrominoType::Empty) {
@@ -73,6 +71,10 @@ bool ObpfTetrion::is_active_tetromino_position_valid() const {
         }
     }
     return true;
+}
+
+[[nodiscard]] bool ObpfTetrion::is_active_tetromino_position_valid() const {
+    return not active_tetromino().has_value() or is_tetromino_position_valid(active_tetromino().value());
 }
 
 void ObpfTetrion::spawn_next_tetromino() {
@@ -258,6 +260,25 @@ void ObpfTetrion::clear_lines() {
             m_matrix.copy_line(destination_line, destination_line - 1);
         }
         m_matrix.fill(0, TetrominoType::Empty);
+    }
+}
+
+[[nodiscard]] u32 ObpfTetrion::level() const {
+    return m_lines_cleared / 10;
+}
+
+void ObpfTetrion::refresh_ghost_tetromino() {
+    if (not m_active_tetromino.has_value()) {
+        m_ghost_tetromino = std::nullopt;
+    }
+
+    m_ghost_tetromino = m_active_tetromino;
+    while (true) {
+        ++m_ghost_tetromino->position.y;
+        if (not is_tetromino_position_valid(m_ghost_tetromino.value())) {
+            --m_ghost_tetromino->position.y;
+            return;
+        }
     }
 }
 
