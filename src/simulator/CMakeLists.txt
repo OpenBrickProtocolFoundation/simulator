@@ -13,6 +13,7 @@ add_library(simulator STATIC
         wallkicks.cpp
         include/simulator/delayed_auto_shift.hpp
         include/simulator/lock_delay.hpp
+        include/simulator/entry_delay.hpp
 )
 
 target_include_directories(simulator

@@ -6,6 +6,14 @@
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
+        switch (m_entry_delay.poll()) {
+            case EntryDelayPollResult::ShouldSpawn:
+                spawn_next_tetromino();
+                break;
+            case EntryDelayPollResult::ShouldNotSpawn:
+                break;
+        }
+
         process_events();
 
         if (m_next_frame == m_next_gravity_frame) {
@@ -23,7 +31,7 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
         switch (m_lock_delay_state.poll()) {
             case LockDelayPollResult::ShouldLock:
                 freeze_and_destroy_active_tetromino();
-                spawn_next_tetromino();
+                m_entry_delay.start();
                 break;
             case LockDelayPollResult::ShouldNotLock:
                 break;
@@ -271,6 +279,7 @@ void ObpfTetrion::clear_lines() {
 void ObpfTetrion::refresh_ghost_tetromino() {
     if (not m_active_tetromino.has_value()) {
         m_ghost_tetromino = std::nullopt;
+        return;
     }
 
     m_ghost_tetromino = m_active_tetromino;

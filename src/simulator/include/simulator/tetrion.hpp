@@ -7,6 +7,7 @@
 #include <vector>
 #include "bag.hpp"
 #include "delayed_auto_shift.hpp"
+#include "entry_delay.hpp"
 #include "input.hpp"
 #include "lock_delay.hpp"
 #include "matrix.hpp"
@@ -27,6 +28,7 @@ private:
     usize m_bag_index = 0;
     DelayedAutoShiftState m_auto_shift_state;
     LockDelayState m_lock_delay_state;
+    EntryDelay m_entry_delay;
     u32 m_lines_cleared = 0;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
