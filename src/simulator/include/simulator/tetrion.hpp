@@ -2,18 +2,24 @@
 
 #include <cstdint>
 #include <lib2k/random.hpp>
+#include <lib2k/static_vector.hpp>
 #include <lib2k/types.hpp>
 #include <optional>
 #include <vector>
 #include "bag.hpp"
 #include "delayed_auto_shift.hpp"
+#include "entry_delay.hpp"
 #include "input.hpp"
+#include "line_clear_delay.hpp"
 #include "lock_delay.hpp"
 #include "matrix.hpp"
 #include "tetromino.hpp"
 
 struct ObpfTetrion final {
 private:
+    using CFacingOnLinesClearedCallback =
+        void (*)(uint8_t count, uint8_t first, uint8_t second, uint8_t third, uint8_t fourth, uint64_t delay);
+
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
 
@@ -27,6 +33,9 @@ private:
     usize m_bag_index = 0;
     DelayedAutoShiftState m_auto_shift_state;
     LockDelayState m_lock_delay_state;
+    EntryDelay m_entry_delay;
+    LineClearDelay m_line_clear_delay;
+    CFacingOnLinesClearedCallback m_on_lines_cleared_callback = nullptr;
     u32 m_lines_cleared = 0;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
@@ -64,6 +73,7 @@ public:
 
     void simulate_up_until(std::uint64_t frame);
     void enqueue_event(Event const& event);
+    void set_lines_cleared_callback(CFacingOnLinesClearedCallback callback);
 
 private:
     void freeze_and_destroy_active_tetromino();
@@ -71,6 +81,7 @@ private:
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
     void spawn_next_tetromino();
     void process_events();
+    void discard_events(u64 frame);
     void handle_key_press(Key key);
     void handle_key_release(Key key);
     void move_left();
@@ -80,9 +91,11 @@ private:
     void rotate_clockwise();
     void rotate_counter_clockwise();
     void drop();
-    void clear_lines();
+    void determine_lines_to_clear();
+    void clear_lines(c2k::StaticVector<u8, 4> lines);
     [[nodiscard]] u32 level() const;
     void refresh_ghost_tetromino();
+    void on_lines_cleared(c2k::StaticVector<u8, 4> lines, u64 delay);
 
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
 };

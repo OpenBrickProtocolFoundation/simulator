@@ -1,11 +1,35 @@
 #include <spdlog/spdlog.h>
 #include <cassert>
 #include <gsl/gsl>
+#include <iostream>
+#include <lib2k/static_vector.hpp>
+#include <ranges>
 #include <simulator/tetrion.hpp>
 #include <simulator/wallkicks.hpp>
 
 void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
     while (m_next_frame <= frame) {
+        auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
+
+        if (std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
+            auto const lines = std::get<LineClearDelay::DelayEnded>(line_clear_delay_poll_result).lines;
+            clear_lines(lines);
+        } else if (std::get_if<LineClearDelay::DelayIsActive>(&line_clear_delay_poll_result) != nullptr) {
+            process_events();
+            ++m_next_frame;
+            continue;
+        } else {
+            assert(std::holds_alternative<LineClearDelay::DelayIsInactive>(line_clear_delay_poll_result));
+        }
+
+        switch (m_entry_delay.poll()) {
+            case EntryDelayPollResult::ShouldSpawn:
+                spawn_next_tetromino();
+                break;
+            case EntryDelayPollResult::ShouldNotSpawn:
+                break;
+        }
+
         process_events();
 
         if (m_next_frame == m_next_gravity_frame) {
@@ -23,7 +47,7 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
         switch (m_lock_delay_state.poll()) {
             case LockDelayPollResult::ShouldLock:
                 freeze_and_destroy_active_tetromino();
-                spawn_next_tetromino();
+                m_entry_delay.start();
                 break;
             case LockDelayPollResult::ShouldNotLock:
                 break;
@@ -39,7 +63,7 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
             case AutoShiftDirection::None:
                 break;
         }
-        clear_lines();
+        determine_lines_to_clear();
 
         refresh_ghost_tetromino();
 
@@ -49,6 +73,11 @@ void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
 
 void ObpfTetrion::enqueue_event(Event const& event) {
     m_events.push_back(event);
+}
+
+void ObpfTetrion::set_lines_cleared_callback(CFacingOnLinesClearedCallback const callback) {
+    spdlog::debug("lines cleared callback set");
+    m_on_lines_cleared_callback = callback;
 }
 
 void ObpfTetrion::freeze_and_destroy_active_tetromino() {
@@ -106,7 +135,11 @@ void ObpfTetrion::process_events() {
             }
         }
     }
-    std::erase_if(m_events, [this](auto const& event) { return event.frame <= m_next_frame; });
+    discard_events(m_next_frame);
+}
+
+void ObpfTetrion::discard_events(u64 const frame) {
+    std::erase_if(m_events, [&](auto const& event) { return event.frame <= frame; });
 }
 
 void ObpfTetrion::handle_key_press(Key const key) {
@@ -243,25 +276,43 @@ void ObpfTetrion::drop() {
     m_lock_delay_state.on_hard_drop_lock();
 }
 
-void ObpfTetrion::clear_lines() {
-    for (auto i = std::size_t{ 0 }; i < Matrix::height;) {
+void ObpfTetrion::determine_lines_to_clear() {
+    auto lines_to_clear = c2k::StaticVector<u8, 4>{};
+    for (auto i = std::size_t{ 0 }; i < Matrix::height; ++i) {
         auto const line = Matrix::height - i - 1;
         if (not m_matrix.is_line_full(line)) {
-            ++i;
             continue;
         }
 
-        auto const old_level = level();
-        ++m_lines_cleared;
-        if (level() > old_level) {
-            spdlog::info("changed to level {}", level());
-        }
-
-        for (auto destination_line = line; destination_line > 0; --destination_line) {
-            m_matrix.copy_line(destination_line, destination_line - 1);
-        }
-        m_matrix.fill(0, TetrominoType::Empty);
+        std::cerr << "pushing back line to clear, line: " << line
+                  << ", lines_to_clear.size(): " << lines_to_clear.size() << '\n';
+        lines_to_clear.push_back(gsl::narrow<u8>(line));
     }
+
+    if (not lines_to_clear.empty()) {
+        std::cerr << "lines to clear: ";
+        for (auto const line : lines_to_clear) {
+            std::cerr << static_cast<int>(line) << ", ";
+        }
+        std::cerr << '\n';
+        m_line_clear_delay.start(lines_to_clear);
+        on_lines_cleared(lines_to_clear, LineClearDelay::delay);
+    }
+}
+
+void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
+    auto num_lines_cleared = decltype(lines.front()){ 0 };
+    for (auto const line_to_clear : lines) {
+        std::cerr << "should clear line: " << static_cast<int>(line_to_clear) << '\n';
+        for (auto i = decltype(line_to_clear){ 0 }; i < line_to_clear; ++i) {
+            auto const line = line_to_clear - i + num_lines_cleared;
+            std::cerr << "copying line " << line - 1 << " to line " << line << '\n';
+            m_matrix.copy_line(line, line - 1);
+        }
+        ++num_lines_cleared;
+        m_matrix.fill(num_lines_cleared, TetrominoType::Empty);
+    }
+    m_lines_cleared += gsl::narrow<decltype(m_lines_cleared)>(lines.size());
 }
 
 [[nodiscard]] u32 ObpfTetrion::level() const {
@@ -271,6 +322,7 @@ void ObpfTetrion::clear_lines() {
 void ObpfTetrion::refresh_ghost_tetromino() {
     if (not m_active_tetromino.has_value()) {
         m_ghost_tetromino = std::nullopt;
+        return;
     }
 
     m_ghost_tetromino = m_active_tetromino;
@@ -280,6 +332,33 @@ void ObpfTetrion::refresh_ghost_tetromino() {
             --m_ghost_tetromino->position.y;
             return;
         }
+    }
+}
+
+void ObpfTetrion::on_lines_cleared(c2k::StaticVector<u8, 4> lines, u64 const delay) {
+    if (m_on_lines_cleared_callback != nullptr) {
+        assert(lines.capacity() == 4);
+        auto const original_size = lines.size();
+        while (lines.size() < decltype(lines)::capacity()) {
+            lines.push_back(0);
+        }
+        spdlog::error(
+            "invoking callback, lines cleared: {}, {}, {}, {}, delay: {}",
+            lines.at(0),
+            lines.at(1),
+            lines.at(2),
+            lines.at(3),
+            delay
+        );
+        spdlog::error("callback address: {}", reinterpret_cast<void*>(m_on_lines_cleared_callback));
+        m_on_lines_cleared_callback(
+            gsl::narrow<u8>(original_size),
+            lines.at(0),
+            lines.at(1),
+            lines.at(2),
+            lines.at(3),
+            delay
+        );
     }
 }
 
