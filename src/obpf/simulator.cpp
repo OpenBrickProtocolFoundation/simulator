@@ -39,6 +39,13 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
     return new ObpfTetrion{ seed };
 }
 
+void obpf_tetrion_set_lines_cleared_callback(
+    ObpfTetrion* const tetrion,
+    void (*callback)(uint8_t count, uint8_t first, uint8_t second, uint8_t third, uint8_t fourth, uint64_t delay)
+) {
+    tetrion->set_lines_cleared_callback(callback);
+}
+
 bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, ObpfTetromino* const out_tetromino) {
     return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::ActiveTetromino);
 }

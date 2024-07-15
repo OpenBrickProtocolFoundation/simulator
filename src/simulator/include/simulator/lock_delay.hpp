@@ -1,6 +1,5 @@
 #pragma once
 
-#include <spdlog/spdlog.h>
 #include <cassert>
 #include <lib2k/types.hpp>
 
@@ -96,7 +95,6 @@ public:
             }
         } cleanup{ m_can_lock };
 
-        spdlog::info("lock delay counter: {}", m_delay_counter);
         if (not m_delay_active) {
             return LockDelayPollResult::ShouldNotLock;
         }
