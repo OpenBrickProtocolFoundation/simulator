@@ -39,11 +39,21 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
     return new ObpfTetrion{ seed };
 }
 
-void obpf_tetrion_set_lines_cleared_callback(
-    ObpfTetrion* const tetrion,
-    void (*callback)(uint8_t count, uint8_t first, uint8_t second, uint8_t third, uint8_t fourth, uint64_t delay)
-) {
-    tetrion->set_lines_cleared_callback(callback);
+ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(ObpfTetrion const* tetrion) {
+    auto [lines, countdown] = tetrion->line_clear_delay_state();
+    auto const original_size = lines.size();
+    while (lines.size() < decltype(lines)::capacity()) {
+        lines.push_back(0);
+    }
+    return ObpfLineClearDelayState{
+        .count = gsl::narrow<u8>(original_size),
+        .first = lines.at(0),
+        .second = lines.at(1),
+        .third = lines.at(2),
+        .fourth = lines.at(3),
+        .countdown = countdown,
+        .delay = LineClearDelay::delay,
+    };
 }
 
 bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, ObpfTetromino* const out_tetromino) {

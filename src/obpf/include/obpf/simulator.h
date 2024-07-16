@@ -13,14 +13,21 @@ extern "C" {
 #include "tetromino_type.h"
 #include "vec2.h"
 
+    typedef struct {
+        uint8_t count;
+        uint8_t first;
+        uint8_t second;
+        uint8_t third;
+        uint8_t fourth;
+        uint64_t countdown;
+        uint64_t delay;
+    } ObpfLineClearDelayState;
+
     // clang-format off
 
     // Tetrion
     SIMULATOR_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
-    SIMULATOR_EXPORT void obpf_tetrion_set_lines_cleared_callback(
-        struct ObpfTetrion* tetrion,
-        void(*callback)(uint8_t count, uint8_t first, uint8_t second, uint8_t third, uint8_t fourth, uint64_t delay)
-    );
+    SIMULATOR_EXPORT ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(struct ObpfTetrion const* tetrion);
     SIMULATOR_EXPORT bool obpf_tetrion_try_get_active_tetromino(
         struct ObpfTetrion const* tetrion,
         struct ObpfTetromino* out_tetromino
