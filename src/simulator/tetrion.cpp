@@ -75,9 +75,8 @@ void ObpfTetrion::enqueue_event(Event const& event) {
     m_events.push_back(event);
 }
 
-void ObpfTetrion::set_lines_cleared_callback(CFacingOnLinesClearedCallback const callback) {
-    spdlog::debug("lines cleared callback set");
-    m_on_lines_cleared_callback = callback;
+[[nodiscard]] LineClearDelay::State ObpfTetrion::line_clear_delay_state() const {
+    return m_line_clear_delay.state();
 }
 
 void ObpfTetrion::freeze_and_destroy_active_tetromino() {
@@ -284,29 +283,19 @@ void ObpfTetrion::determine_lines_to_clear() {
             continue;
         }
 
-        std::cerr << "pushing back line to clear, line: " << line
-                  << ", lines_to_clear.size(): " << lines_to_clear.size() << '\n';
         lines_to_clear.push_back(gsl::narrow<u8>(line));
     }
 
     if (not lines_to_clear.empty()) {
-        std::cerr << "lines to clear: ";
-        for (auto const line : lines_to_clear) {
-            std::cerr << static_cast<int>(line) << ", ";
-        }
-        std::cerr << '\n';
         m_line_clear_delay.start(lines_to_clear);
-        on_lines_cleared(lines_to_clear, LineClearDelay::delay);
     }
 }
 
 void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
     auto num_lines_cleared = decltype(lines.front()){ 0 };
     for (auto const line_to_clear : lines) {
-        std::cerr << "should clear line: " << static_cast<int>(line_to_clear) << '\n';
         for (auto i = decltype(line_to_clear){ 0 }; i < line_to_clear; ++i) {
             auto const line = line_to_clear - i + num_lines_cleared;
-            std::cerr << "copying line " << line - 1 << " to line " << line << '\n';
             m_matrix.copy_line(line, line - 1);
         }
         ++num_lines_cleared;
@@ -332,33 +321,6 @@ void ObpfTetrion::refresh_ghost_tetromino() {
             --m_ghost_tetromino->position.y;
             return;
         }
-    }
-}
-
-void ObpfTetrion::on_lines_cleared(c2k::StaticVector<u8, 4> lines, u64 const delay) {
-    if (m_on_lines_cleared_callback != nullptr) {
-        assert(lines.capacity() == 4);
-        auto const original_size = lines.size();
-        while (lines.size() < decltype(lines)::capacity()) {
-            lines.push_back(0);
-        }
-        spdlog::error(
-            "invoking callback, lines cleared: {}, {}, {}, {}, delay: {}",
-            lines.at(0),
-            lines.at(1),
-            lines.at(2),
-            lines.at(3),
-            delay
-        );
-        spdlog::error("callback address: {}", reinterpret_cast<void*>(m_on_lines_cleared_callback));
-        m_on_lines_cleared_callback(
-            gsl::narrow<u8>(original_size),
-            lines.at(0),
-            lines.at(1),
-            lines.at(2),
-            lines.at(3),
-            delay
-        );
     }
 }
 

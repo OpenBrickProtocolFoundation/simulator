@@ -17,9 +17,6 @@
 
 struct ObpfTetrion final {
 private:
-    using CFacingOnLinesClearedCallback =
-        void (*)(uint8_t count, uint8_t first, uint8_t second, uint8_t third, uint8_t fourth, uint64_t delay);
-
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
 
@@ -35,7 +32,6 @@ private:
     LockDelayState m_lock_delay_state;
     EntryDelay m_entry_delay;
     LineClearDelay m_line_clear_delay;
-    CFacingOnLinesClearedCallback m_on_lines_cleared_callback = nullptr;
     u32 m_lines_cleared = 0;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
@@ -73,7 +69,7 @@ public:
 
     void simulate_up_until(std::uint64_t frame);
     void enqueue_event(Event const& event);
-    void set_lines_cleared_callback(CFacingOnLinesClearedCallback callback);
+    [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
 
 private:
     void freeze_and_destroy_active_tetromino();
@@ -95,7 +91,6 @@ private:
     void clear_lines(c2k::StaticVector<u8, 4> lines);
     [[nodiscard]] u32 level() const;
     void refresh_ghost_tetromino();
-    void on_lines_cleared(c2k::StaticVector<u8, 4> lines, u64 delay);
 
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
 };

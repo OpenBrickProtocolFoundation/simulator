@@ -6,6 +6,11 @@
 // https://tetris.wiki/Line_clear#Delay
 class LineClearDelay final {
 public:
+    struct State final {
+        c2k::StaticVector<u8, 4> lines;
+        u64 countdown = 0;
+    };
+
     static constexpr auto delay = u64{ 24 };
 
     struct DelayIsActive {};
@@ -41,5 +46,9 @@ public:
     void start(c2k::StaticVector<u8, 4> const lines_to_clear) {
         m_lines_to_clear = lines_to_clear;
         m_countdown = delay;
+    }
+
+    [[nodiscard]] State state() const {
+        return State{ .lines = m_lines_to_clear.value_or(c2k::StaticVector<u8, 4>{}), .countdown = m_countdown };
     }
 };
