@@ -97,6 +97,10 @@ void ObpfTetrion::enqueue_event(Event const& event) {
     return result;
 }
 
+[[nodiscard]] std::optional<TetrominoType> ObpfTetrion::hold_piece() const {
+    return m_hold_piece;
+}
+
 void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     if (not active_tetromino().has_value()) {
         return;
@@ -124,18 +128,21 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
 }
 
 void ObpfTetrion::spawn_next_tetromino() {
-    auto const next_type = m_bags.at(0).tetrominos.at(m_bag_index);
-    if (m_bag_index == std::tuple_size_v<decltype(Bag::tetrominos)> - 1) {
-        m_bag_index = 0;
-        m_bags.at(0) = m_bags.at(1);
-        std::cerr << "first in bag0: " << static_cast<int>(m_bags.at(0).tetrominos.at(0)) << '\n';
-        m_bags.at(1) = Bag{ m_random };
-        std::cerr << "first in bag1: " << static_cast<int>(m_bags.at(1).tetrominos.at(0)) << '\n';
+    if (m_old_hold_piece.has_value()) {
+        m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, m_old_hold_piece.value() };
+        m_old_hold_piece.reset();
     } else {
-        ++m_bag_index;
+        auto const next_type = m_bags.at(0).tetrominos.at(m_bag_index);
+        if (m_bag_index == std::tuple_size_v<decltype(Bag::tetrominos)> - 1) {
+            m_bag_index = 0;
+            m_bags.at(0) = m_bags.at(1);
+            m_bags.at(1) = Bag{ m_random };
+        } else {
+            ++m_bag_index;
+        }
+        m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
+        m_is_hold_possible = true;
     }
-    m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
-    std::cerr << "next tetromino type: " << static_cast<int>(m_active_tetromino->type) << '\n';
 
     m_is_soft_dropping = false;
     m_next_gravity_frame = m_next_frame + gravity_delay_by_level(level());
@@ -184,7 +191,7 @@ void ObpfTetrion::handle_key_press(Key const key) {
             rotate_counter_clockwise();
             break;
         case Key::Hold:
-            // todo
+            hold();
             break;
     }
 }
@@ -296,6 +303,15 @@ void ObpfTetrion::drop() {
     m_lock_delay_state.on_hard_drop_lock();
 }
 
+void ObpfTetrion::hold() {
+    if (m_is_hold_possible) {
+        m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
+        m_active_tetromino = std::nullopt;
+        m_entry_delay.start();
+        m_is_hold_possible = false;
+    }
+}
+
 void ObpfTetrion::determine_lines_to_clear() {
     auto lines_to_clear = c2k::StaticVector<u8, 4>{};
     for (auto i = std::size_t{ 0 }; i < Matrix::height; ++i) {
@@ -346,9 +362,7 @@ void ObpfTetrion::refresh_ghost_tetromino() {
 }
 
 [[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(c2k::Random& random) {
-    std::cerr << "bag0: ";
     auto const bag0 = Bag{ random };
-    std::cerr << "bag1: ";
     auto const bag1 = Bag{ random };
     return std::array{ bag0, bag1 };
 }

@@ -1,8 +1,7 @@
 #pragma once
 
-#include <../../../../cmake-build-msvc-debug/_deps/lib2k-src/src/include/lib2k/random.hpp>
 #include <array>
-#include <iostream>
+#include <lib2k/random.hpp>
 #include "tetromino_type.hpp"
 
 struct Bag final {
@@ -15,10 +14,5 @@ struct Bag final {
         };
 
         random.shuffle(tetrominos);
-
-        for (auto const& tetromino : tetrominos) {
-            std::cerr << static_cast<int>(tetromino) << ' ';
-        }
-        std::cerr << '\n';
     }
 };

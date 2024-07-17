@@ -24,6 +24,9 @@ private:
     Matrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
     std::optional<Tetromino> m_ghost_tetromino;
+    std::optional<TetrominoType> m_hold_piece;
+    std::optional<TetrominoType> m_old_hold_piece;
+    bool m_is_hold_possible = true;
     u64 m_next_frame = 0;
     std::vector<Event> m_events;
     c2k::Random m_random;
@@ -72,6 +75,7 @@ public:
     void enqueue_event(Event const& event);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
+    [[nodiscard]] std::optional<TetrominoType> hold_piece() const;
 
 private:
     void freeze_and_destroy_active_tetromino();
@@ -89,6 +93,7 @@ private:
     void rotate_clockwise();
     void rotate_counter_clockwise();
     void drop();
+    void hold();
     void determine_lines_to_clear();
     void clear_lines(c2k::StaticVector<u8, 4> lines);
     [[nodiscard]] u32 level() const;

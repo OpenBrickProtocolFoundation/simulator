@@ -124,3 +124,11 @@ ObpfMinoPositions obpf_tetromino_get_mino_positions(ObpfTetrominoType const type
     }
     return result;
 }
+
+ObpfTetrominoType obpf_tetrion_get_hold_piece(ObpfTetrion const* const tetrion) {
+    auto const hold_piece = tetrion->hold_piece();
+    if (hold_piece.has_value()) {
+        return static_cast<ObpfTetrominoType>(hold_piece.value());
+    }
+    return OBPF_TETROMINO_TYPE_EMPTY;
+}
