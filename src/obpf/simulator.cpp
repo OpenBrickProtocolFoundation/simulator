@@ -4,6 +4,7 @@
 #include <memory>
 #include <simulator/matrix.hpp>
 #include <simulator/tetrion.hpp>
+#include <simulator/tetromino.hpp>
 
 enum class TetrominoSelection {
     ActiveTetromino,
@@ -96,4 +97,38 @@ uint8_t obpf_tetrion_width() {
 
 uint8_t obpf_tetrion_height() {
     return uint8_t{ Matrix::height };
+}
+
+ObpfPreviewPieces obpf_tetrion_get_preview_pieces(ObpfTetrion const* tetrion) {
+    auto const preview_tetrominos = tetrion->get_preview_tetrominos();
+    ObpfPreviewPieces result{};
+    for (usize i = 0; i < preview_tetrominos.size(); ++i) {
+        result.types[i] = static_cast<ObpfTetrominoType>(preview_tetrominos.at(i));
+    }
+    return result;
+}
+
+ObpfMinoPositions obpf_tetromino_get_mino_positions(ObpfTetrominoType const type, ObpfRotation const rotation) {
+    auto const tetromino = Tetromino{
+        Vec2{ 0, 0 },
+        static_cast<Rotation>(rotation),
+        static_cast<TetrominoType>(type)
+    };
+    auto const mino_positions = get_mino_positions(tetromino);
+    ObpfMinoPositions result{};
+    for (usize i = 0; i < mino_positions.size(); ++i) {
+        result.positions[i] = ObpfVec2{
+            gsl::narrow<std::uint8_t>(mino_positions.at(i).x),
+            gsl::narrow<std::uint8_t>(mino_positions.at(i).y),
+        };
+    }
+    return result;
+}
+
+ObpfTetrominoType obpf_tetrion_get_hold_piece(ObpfTetrion const* const tetrion) {
+    auto const hold_piece = tetrion->hold_piece();
+    if (hold_piece.has_value()) {
+        return static_cast<ObpfTetrominoType>(hold_piece.value());
+    }
+    return OBPF_TETROMINO_TYPE_EMPTY;
 }

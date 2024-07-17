@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tetromino_type.hpp"
-#include <../../../../cmake-build-msvc-debug/_deps/lib2k-src/src/include/lib2k/random.hpp>
 #include <array>
+#include <lib2k/random.hpp>
+#include "tetromino_type.hpp"
 
 struct Bag final {
     std::array<TetrominoType, 7> tetrominos{};
