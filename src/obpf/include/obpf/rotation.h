@@ -1,0 +1,9 @@
+#pragma once
+
+typedef enum {
+    OBPF_ROTATION_NORTH = 0,
+    OBPF_ROTATION_EAST,
+    OBPF_ROTATION_SOUTH,
+    OBPF_ROTATION_WEST,
+    OBPF_ROTATION_LAST_ROTATION = OBPF_ROTATION_WEST,
+} ObpfRotation;

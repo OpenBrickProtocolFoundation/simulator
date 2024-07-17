@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <lib2k/random.hpp>
 #include <lib2k/static_vector.hpp>
@@ -70,6 +71,7 @@ public:
     void simulate_up_until(std::uint64_t frame);
     void enqueue_event(Event const& event);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
+    [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
 
 private:
     void freeze_and_destroy_active_tetromino();
