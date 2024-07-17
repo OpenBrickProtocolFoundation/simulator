@@ -62,7 +62,7 @@ struct Heartbeat final : AbstractMessage {
     [[nodiscard]] static Heartbeat deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
-        return calculate_payload_size(heartbeat_interval);
+        return calculate_payload_size(heartbeat_interval * 4);  // allow up to 4 events per frame
     }
 
 private:
