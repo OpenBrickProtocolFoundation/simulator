@@ -41,8 +41,8 @@ private:
     bool m_is_soft_dropping = false;
 
     static constexpr u64 gravity_delay_by_level(u32 const level) {
-        constexpr auto delays = std::array<u64, 30>{
-            48, 43, 38, 33, 28, 23, 18, 13, 8, 6, 5, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+        constexpr auto delays = std::array<u64, 13>{
+            60, 48, 37, 28, 21, 16, 11, 8, 6, 4, 3, 2, 1,
         };
         return delays.at(std::min(static_cast<usize>(level), delays.size() - 1));
     }
