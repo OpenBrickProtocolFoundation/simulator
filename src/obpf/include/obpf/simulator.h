@@ -49,7 +49,7 @@ extern "C" {
     SIMULATOR_EXPORT ObpfPreviewPieces obpf_tetrion_get_preview_pieces(struct ObpfTetrion const* tetrion);
     SIMULATOR_EXPORT ObpfTetrominoType obpf_tetrion_get_hold_piece(struct ObpfTetrion const* tetrion);
     SIMULATOR_EXPORT void obpf_tetrion_simulate_up_until(struct ObpfTetrion* tetrion, uint64_t frame);
-    SIMULATOR_EXPORT void obpf_tetrion_enqueue_event(struct ObpfTetrion* tetrion, ObpfEvent event);
+    SIMULATOR_EXPORT void obpf_tetrion_enqueue_event(struct ObpfTetrion* tetrion, struct ObpfEvent event);
     SIMULATOR_EXPORT void obpf_destroy_tetrion(struct ObpfTetrion const* tetrion);
     SIMULATOR_EXPORT struct ObpfMatrix const* obpf_tetrion_matrix(struct ObpfTetrion const* tetrion);
     SIMULATOR_EXPORT uint8_t obpf_tetrion_width(void);
