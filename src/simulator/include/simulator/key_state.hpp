@@ -41,18 +41,18 @@ public:
 
     constexpr KeyState& set(Key const key, bool const value = true) & noexcept {
         if (value) {
-            m_bitmask |= (1 << std::to_underlying(key));
+            m_bitmask |= gsl::narrow<decltype(m_bitmask)>(1 << std::to_underlying(key));
         } else {
-            m_bitmask &= ~(1 << std::to_underlying(key));
+            m_bitmask &= gsl::narrow<decltype(m_bitmask)>((~(1 << std::to_underlying(key))) & 0xFF);
         }
         return *this;
     }
 
     constexpr KeyState set(Key const key, bool const value = true) && noexcept {
         if (value) {
-            m_bitmask |= (1 << std::to_underlying(key));
+            m_bitmask |= gsl::narrow<decltype(m_bitmask)>(1 << std::to_underlying(key));
         } else {
-            m_bitmask &= ~(1 << std::to_underlying(key));
+            m_bitmask &= gsl::narrow<decltype(m_bitmask)>((~(1 << std::to_underlying(key))) & 0xFF);
         }
         return *this;
     }

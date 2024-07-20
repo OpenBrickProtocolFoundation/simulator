@@ -26,10 +26,14 @@ function(obpf_simulator_set_warnings target_name warnings_as_errors)
             /permissive- # standards conformance mode for MSVC compiler.
     )
 
+    if (WIN32)
+        add_compile_definitions("_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
+    endif ()
+
     set(clang_warnings
             -Wall
             -Wextra # reasonable and standard
-#            -Wshadow # warn the user if a variable declaration shadows one from a parent context
+            #            -Wshadow # warn the user if a variable declaration shadows one from a parent context
             -Wnon-virtual-dtor # warn the user if a class with virtual functions has a non-virtual destructor. This helps catch hard to track down memory errors
             -Wold-style-cast # warn for c-style casts
             -Wcast-align # warn for potential performance problem casts

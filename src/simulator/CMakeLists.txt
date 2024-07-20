@@ -38,8 +38,3 @@ target_link_system_libraries(simulator
         tl::optional
         magic_enum::magic_enum
 )
-
-# Disable exceptions
-if (NOT MSVC)
-    target_compile_options(simulator PRIVATE -fno-exceptions)
-endif ()

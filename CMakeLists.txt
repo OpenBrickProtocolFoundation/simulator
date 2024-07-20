@@ -7,10 +7,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if (MSVC)
-    string(APPEND CMAKE_CXX_FLAGS " /EHs")
-endif ()
-
 include(dependencies.cmake)
 obpf_simulator_setup_dependencies()
 

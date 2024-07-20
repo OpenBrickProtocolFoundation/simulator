@@ -177,7 +177,7 @@ TEST(NetworkTests, SlightlyTooBigGameStartMessageFails) {
 }
 
 TEST(NetworkTests, MinimalStateBroadcastMessage) {
-    auto const message = StateBroadcast{ 42, {} };
+    auto const message = StateBroadcast{ 14, {} };
 
     auto const deserialized_message = send_receive_and_deserialize(message);
     EXPECT_EQ(dynamic_cast<StateBroadcast const&>(*deserialized_message), message);
@@ -207,7 +207,7 @@ TEST(NetworkTests, MaximumStateBroadcastMessage) {
             }
         );
     }
-    auto const message = StateBroadcast{ 42, std::move(events_per_client) };
+    auto const message = StateBroadcast{ 14, std::move(events_per_client) };
 
     auto const deserialized_message = send_receive_and_deserialize(message);
     EXPECT_EQ(dynamic_cast<StateBroadcast const&>(*deserialized_message), message);
@@ -219,7 +219,7 @@ TEST(NetworkTests, SlightlyTooBigStateBroadcastMessage) {
            << gsl::narrow<std::uint16_t>(StateBroadcast::max_payload_size() + 1);
 
     for (auto i = std::size_t{ 0 }; i < StateBroadcast::max_payload_size() + 1; ++i) {
-        buffer << std::uint8_t{ 42 };
+        buffer << std::uint8_t{ 14 };
     }
 
     EXPECT_THROW({ std::ignore = send_receive_buffer_and_deserialize(buffer); }, MessageDeserializationError);
@@ -230,7 +230,7 @@ TEST(NetworkTests, EventBroadcastMessageWithDuplicateClientIdsFails) {
     // clang-format off
     buffer << std::to_underlying(MessageType::StateBroadcast)
            << std::uint16_t{ 41 }  // payload size
-           << std::uint64_t{ 42 }  // frame
+           << std::uint64_t{ 14 }  // frame
            << std::uint8_t{ 2 }    // client_count
            << std::uint8_t{ 15 }   // client_id
            << std::uint8_t{ 0 }    // key_state[0]
