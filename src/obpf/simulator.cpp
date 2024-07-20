@@ -65,17 +65,12 @@ bool obpf_tetrion_try_get_ghost_tetromino(ObpfTetrion const* tetrion, ObpfTetrom
     return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::GhostTetromino);
 }
 
-void obpf_tetrion_simulate_up_until(ObpfTetrion* const tetrion, uint64_t const frame) {
-    tetrion->simulate_up_until(frame);
+uint64_t obpf_tetrion_get_next_frame(ObpfTetrion const* const tetrion) {
+    return tetrion->next_frame();
 }
 
-void obpf_tetrion_enqueue_event(ObpfTetrion* const tetrion, ObpfEvent const event) {
-    auto const e = Event{
-        .key = static_cast<Key>(event.key),
-        .type = static_cast<EventType>(event.type),
-        .frame = event.frame,
-    };
-    tetrion->enqueue_event(e);
+void obpf_tetrion_simulate_next_frame(ObpfTetrion* const tetrion, ObpfKeyState const key_state) {
+    tetrion->simulate_next_frame(KeyState::from_bitmask(key_state.bitmask).value());
 }
 
 void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) {
@@ -131,4 +126,19 @@ ObpfTetrominoType obpf_tetrion_get_hold_piece(ObpfTetrion const* const tetrion) 
         return static_cast<ObpfTetrominoType>(hold_piece.value());
     }
     return OBPF_TETROMINO_TYPE_EMPTY;
+}
+
+ObpfKeyState obpf_key_state_create(
+    bool const left,
+    bool const right,
+    bool const down,
+    bool const drop,
+    bool const rotate_clockwise,
+    bool const rotate_counter_clockwise,
+    bool const hold
+) {
+    return ObpfKeyState{
+        .bitmask = KeyState{ left, right, down, drop, rotate_clockwise, rotate_counter_clockwise, hold }
+          .get_bitmask(),
+    };
 }

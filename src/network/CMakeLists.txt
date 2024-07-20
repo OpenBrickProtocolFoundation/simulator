@@ -17,5 +17,6 @@ target_link_system_libraries(network
         spdlog::spdlog
         tl::expected
         crapper
+        magic_enum::magic_enum
 )
 target_include_directories(network PUBLIC include)

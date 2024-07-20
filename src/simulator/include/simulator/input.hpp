@@ -11,16 +11,3 @@ enum class Key {
     RotateCounterClockwise,
     Hold,
 };
-
-enum class EventType {
-    Pressed,
-    Released,
-};
-
-struct Event {
-    Key key;
-    EventType type;
-    std::uint64_t frame;
-
-    [[nodiscard]] constexpr bool operator==(Event const&) const = default;
-};

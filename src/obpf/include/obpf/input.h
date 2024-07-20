@@ -22,8 +22,8 @@ enum ObpfEventType {
 };
 
 struct ObpfEvent {
-    ObpfKey key;
-    ObpfEventType type;
+    enum ObpfKey key;
+    enum ObpfEventType type;
     uint64_t frame;
 };
 

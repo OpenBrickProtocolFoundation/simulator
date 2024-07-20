@@ -11,6 +11,7 @@
 #include "delayed_auto_shift.hpp"
 #include "entry_delay.hpp"
 #include "input.hpp"
+#include "key_state.hpp"
 #include "line_clear_delay.hpp"
 #include "lock_delay.hpp"
 #include "matrix.hpp"
@@ -28,7 +29,7 @@ private:
     std::optional<TetrominoType> m_old_hold_piece;
     bool m_is_hold_possible = true;
     u64 m_next_frame = 0;
-    std::vector<Event> m_events;
+    KeyState m_last_key_state;
     c2k::Random m_random;
     std::array<Bag, 2> m_bags;
     usize m_bag_index = 0;
@@ -71,19 +72,21 @@ public:
         return m_ghost_tetromino;
     }
 
-    void simulate_up_until(std::uint64_t frame);
-    void enqueue_event(Event const& event);
+    void simulate_next_frame(KeyState key_state);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
     [[nodiscard]] std::optional<TetrominoType> hold_piece() const;
+
+    [[nodiscard]] u64 next_frame() const {
+        return m_next_frame;
+    }
 
 private:
     void freeze_and_destroy_active_tetromino();
     [[nodiscard]] bool is_tetromino_position_valid(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
     void spawn_next_tetromino();
-    void process_events();
-    void discard_events(u64 frame);
+    void process_keys(KeyState key_state);
     void handle_key_press(Key key);
     void handle_key_release(Key key);
     void move_left();
