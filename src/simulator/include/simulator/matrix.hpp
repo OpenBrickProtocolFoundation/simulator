@@ -2,6 +2,7 @@
 
 #include <array>
 #include <gsl/gsl>
+#include <lib2k/types.hpp>
 #include "tetromino_type.hpp"
 #include "vec2.hpp"
 
@@ -52,10 +53,10 @@ public:
     }
 
     [[nodiscard]] TetrominoType operator[](Vec2 const index) const {
-        return m_minos.at(index.y * width + index.x);
+        return m_minos.at(gsl::narrow<usize>(index.y) * width + gsl::narrow<usize>(index.x));
     }
 
     [[nodiscard]] TetrominoType& operator[](Vec2 const index) {
-        return m_minos.at(index.y * width + index.x);
+        return m_minos.at(gsl::narrow<usize>(index.y) * width + gsl::narrow<usize>(index.x));
     }
 };

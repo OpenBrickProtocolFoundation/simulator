@@ -1,6 +1,8 @@
-#include "include/simulator/tetromino.hpp"
+#include <spdlog/spdlog.h>
 #include <array>
+#include <simulator/tetromino.hpp>
 #include <simulator/vec2.hpp>
+#include <stdexcept>
 
 static constexpr std::size_t to_index(TetrominoType const type) {
     switch (type) {
@@ -18,6 +20,9 @@ static constexpr std::size_t to_index(TetrominoType const type) {
             return 5;
         case TetrominoType::Z:
             return 6;
+        case TetrominoType::Empty:
+            spdlog::error("Cannot map empty tetromino type to index");
+            return 0;
     }
     std::unreachable();
 }
@@ -77,8 +82,7 @@ static constexpr auto tetromino_patterns = std::array{
 // clang-format on
 
 [[nodiscard]] std::array<Vec2, 4> get_mino_positions(Tetromino const& tetromino) {
-    auto result = tetromino_patterns.at(to_index(tetromino.type))
-                      .at(static_cast<std::size_t>(tetromino.rotation));
+    auto result = tetromino_patterns.at(to_index(tetromino.type)).at(static_cast<std::size_t>(tetromino.rotation));
     for (auto& position : result) {
         position = position + tetromino.position;
     }

@@ -3,6 +3,7 @@
 #include <gsl/gsl>
 #include <iostream>
 #include <lib2k/static_vector.hpp>
+#include <lib2k/types.hpp>
 #include <magic_enum.hpp>
 #include <ranges>
 #include <simulator/tetrion.hpp>
@@ -11,7 +12,7 @@
 [[nodiscard]] static auto determine_pressed_keys(KeyState const previous_state, KeyState const current_state) {
     auto result = std::array<bool, magic_enum::enum_count<Key>()>{};
     for (auto const key : magic_enum::enum_values<Key>()) {
-        auto const key_index = std::to_underlying(key);
+        auto const key_index = gsl::narrow<usize>(std::to_underlying(key));
         result.at(key_index) = current_state.get(key) and not previous_state.get(key);
     }
     return result;
@@ -20,7 +21,7 @@
 [[nodiscard]] static auto determine_released_keys(KeyState const previous_state, KeyState const current_state) {
     auto result = std::array<bool, magic_enum::enum_count<Key>()>{};
     for (auto const key : magic_enum::enum_values<Key>()) {
-        auto const key_index = std::to_underlying(key);
+        auto const key_index = gsl::narrow<usize>(std::to_underlying(key));
         result.at(key_index) = not current_state.get(key) and previous_state.get(key);
         if (result.at(key_index)) {
             spdlog::info("key {} released", magic_enum::enum_name(key));
@@ -131,8 +132,8 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
     auto const mino_positions = get_mino_positions(tetromino);
     for (auto const position : mino_positions) {
-        if (position.x < 0 or position.x >= Matrix::width or position.y >= Matrix::height
-            or m_matrix[position] != TetrominoType::Empty) {
+        if (position.x < 0 or position.x >= gsl::narrow<i32>(Matrix::width)
+            or position.y >= gsl::narrow<i32>(Matrix::height) or m_matrix[position] != TetrominoType::Empty) {
             return false;
         }
     }
@@ -347,7 +348,7 @@ void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
     auto num_lines_cleared = decltype(lines.front()){ 0 };
     for (auto const line_to_clear : lines) {
         for (auto i = decltype(line_to_clear){ 0 }; i < line_to_clear; ++i) {
-            auto const line = line_to_clear - i + num_lines_cleared;
+            auto const line = gsl::narrow<usize>(line_to_clear - i + num_lines_cleared);
             m_matrix.copy_line(line, line - 1);
         }
         ++num_lines_cleared;

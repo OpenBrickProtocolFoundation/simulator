@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include <cassert>
 #include <lib2k/types.hpp>
 #include <simulator/rotation.hpp>
@@ -185,7 +186,8 @@ static constexpr auto wall_kick_data_i = WallKickTable{
         case TetrominoType::I:
             return wall_kick_data_i.at(index);
         case TetrominoType::Empty:
-            throw std::runtime_error{ "tetromino type must not be empty" };
+            spdlog::error("tetromino type must not be empty");
+            return wall_kick_data_jltsz.at(index);
     }
     std::unreachable();
 }
