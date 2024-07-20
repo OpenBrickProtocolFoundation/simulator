@@ -15,6 +15,7 @@ add_library(simulator STATIC
         include/simulator/lock_delay.hpp
         include/simulator/entry_delay.hpp
         include/simulator/line_clear_delay.hpp
+        include/simulator/key_state.hpp
 )
 
 target_include_directories(simulator
@@ -35,6 +36,7 @@ target_link_system_libraries(simulator
         PRIVATE
         spdlog::spdlog
         tl::optional
+        magic_enum::magic_enum
 )
 
 # Disable exceptions

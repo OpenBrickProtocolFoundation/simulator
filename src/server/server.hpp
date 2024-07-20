@@ -1,19 +1,19 @@
 #pragma once
 
+#include <spdlog/spdlog.h>
 #include <cstdint>
 #include <lib2k/random.hpp>
 #include <simulator/tetrion.hpp>
 #include <sockets/sockets.hpp>
-#include <spdlog/spdlog.h>
 #include <vector>
 
 struct ClientInfo final {
     std::uint8_t id;
     ObpfTetrion tetrion;
-    std::uint64_t num_frames_simulated{ 0 };
-    std::vector<Event> event_buffer;
+    std::vector<KeyState> key_states;
 
-    explicit ClientInfo(std::uint8_t const id, std::uint64_t const seed) : id{ id }, tetrion{ seed } { }
+    explicit ClientInfo(std::uint8_t const id, std::uint64_t const seed)
+        : id{ id }, tetrion{ seed } {}
 };
 
 class Server final {
@@ -33,9 +33,9 @@ public:
     explicit Server(std::uint16_t const lobby_port)
         : m_lobby_socket{ c2k::Sockets::create_client(c2k::AddressFamily::Ipv4, "127.0.0.1", lobby_port) },
           m_server_socket{ c2k::Sockets::create_server(
-                  c2k::AddressFamily::Ipv4,
-                  0,
-                  [this](c2k::ClientSocket client) { accept_client_connection(std::move(client)); }
+              c2k::AddressFamily::Ipv4,
+              0,
+              [this](c2k::ClientSocket client) { accept_client_connection(std::move(client)); }
           ) },
           m_client_infos{ {} },
           m_broadcasting_thread{ keep_broadcasting, std::ref(*this) },

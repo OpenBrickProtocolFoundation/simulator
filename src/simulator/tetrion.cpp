@@ -3,76 +3,92 @@
 #include <gsl/gsl>
 #include <iostream>
 #include <lib2k/static_vector.hpp>
+#include <magic_enum.hpp>
 #include <ranges>
 #include <simulator/tetrion.hpp>
 #include <simulator/wallkicks.hpp>
 
-void ObpfTetrion::simulate_up_until(std::uint64_t const frame) {
-    while (m_next_frame <= frame) {
-        auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
-
-        if (std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
-            auto const lines = std::get<LineClearDelay::DelayEnded>(line_clear_delay_poll_result).lines;
-            clear_lines(lines);
-        } else if (std::get_if<LineClearDelay::DelayIsActive>(&line_clear_delay_poll_result) != nullptr) {
-            process_events();
-            ++m_next_frame;
-            continue;
-        } else {
-            assert(std::holds_alternative<LineClearDelay::DelayIsInactive>(line_clear_delay_poll_result));
-        }
-
-        switch (m_entry_delay.poll()) {
-            case EntryDelayPollResult::ShouldSpawn:
-                spawn_next_tetromino();
-                break;
-            case EntryDelayPollResult::ShouldNotSpawn:
-                break;
-        }
-
-        process_events();
-
-        if (m_next_frame == m_next_gravity_frame) {
-            move_down(m_is_soft_dropping ? DownMovementType::SoftDrop : DownMovementType::Gravity);
-            auto const gravity_delay =
-                m_is_soft_dropping
-                    ? std::max(
-                          u64{ 1 },
-                          static_cast<u64>(std::round(static_cast<double>(gravity_delay_by_level(level())) / 20.0))
-                      )
-                    : gravity_delay_by_level(level());
-            m_next_gravity_frame += gravity_delay;
-        }
-
-        switch (m_lock_delay_state.poll()) {
-            case LockDelayPollResult::ShouldLock:
-                freeze_and_destroy_active_tetromino();
-                m_entry_delay.start();
-                break;
-            case LockDelayPollResult::ShouldNotLock:
-                break;
-        }
-
-        switch (m_auto_shift_state.poll()) {
-            case AutoShiftDirection::Left:
-                move_left();
-                break;
-            case AutoShiftDirection::Right:
-                move_right();
-                break;
-            case AutoShiftDirection::None:
-                break;
-        }
-        determine_lines_to_clear();
-
-        refresh_ghost_tetromino();
-
-        ++m_next_frame;
+[[nodiscard]] static auto determine_pressed_keys(KeyState const previous_state, KeyState const current_state) {
+    auto result = std::array<bool, magic_enum::enum_count<Key>()>{};
+    for (auto const key : magic_enum::enum_values<Key>()) {
+        auto const key_index = std::to_underlying(key);
+        result.at(key_index) = current_state.get(key) and not previous_state.get(key);
     }
+    return result;
 }
 
-void ObpfTetrion::enqueue_event(Event const& event) {
-    m_events.push_back(event);
+[[nodiscard]] static auto determine_released_keys(KeyState const previous_state, KeyState const current_state) {
+    auto result = std::array<bool, magic_enum::enum_count<Key>()>{};
+    for (auto const key : magic_enum::enum_values<Key>()) {
+        auto const key_index = std::to_underlying(key);
+        result.at(key_index) = not current_state.get(key) and previous_state.get(key);
+        if (result.at(key_index)) {
+            spdlog::info("key {} released", magic_enum::enum_name(key));
+        }
+    }
+    return result;
+}
+
+void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
+    auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
+
+    if (std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
+        auto const lines = std::get<LineClearDelay::DelayEnded>(line_clear_delay_poll_result).lines;
+        clear_lines(lines);
+    } else if (std::get_if<LineClearDelay::DelayIsActive>(&line_clear_delay_poll_result) != nullptr) {
+        process_keys(key_state);
+        ++m_next_frame;
+        return;
+    } else {
+        assert(std::holds_alternative<LineClearDelay::DelayIsInactive>(line_clear_delay_poll_result));
+    }
+
+    switch (m_entry_delay.poll()) {
+        case EntryDelayPollResult::ShouldSpawn:
+            spawn_next_tetromino();
+            break;
+        case EntryDelayPollResult::ShouldNotSpawn:
+            break;
+    }
+
+    process_keys(key_state);
+
+    if (m_next_frame == m_next_gravity_frame) {
+        move_down(m_is_soft_dropping ? DownMovementType::SoftDrop : DownMovementType::Gravity);
+        auto const gravity_delay =
+            m_is_soft_dropping
+                ? std::max(
+                      u64{ 1 },
+                      static_cast<u64>(std::round(static_cast<double>(gravity_delay_by_level(level())) / 20.0))
+                  )
+                : gravity_delay_by_level(level());
+        m_next_gravity_frame += gravity_delay;
+    }
+
+    switch (m_lock_delay_state.poll()) {
+        case LockDelayPollResult::ShouldLock:
+            freeze_and_destroy_active_tetromino();
+            m_entry_delay.start();
+            break;
+        case LockDelayPollResult::ShouldNotLock:
+            break;
+    }
+
+    switch (m_auto_shift_state.poll()) {
+        case AutoShiftDirection::Left:
+            move_left();
+            break;
+        case AutoShiftDirection::Right:
+            move_right();
+            break;
+        case AutoShiftDirection::None:
+            break;
+    }
+    determine_lines_to_clear();
+
+    refresh_ghost_tetromino();
+
+    ++m_next_frame;
 }
 
 [[nodiscard]] LineClearDelay::State ObpfTetrion::line_clear_delay_state() const {
@@ -148,25 +164,24 @@ void ObpfTetrion::spawn_next_tetromino() {
     m_next_gravity_frame = m_next_frame + gravity_delay_by_level(level());
 }
 
-void ObpfTetrion::process_events() {
-    for (auto const& event : m_events) {
-        assert(event.frame >= m_next_frame);
-        if (event.frame == m_next_frame) {
-            switch (event.type) {
-                case EventType::Pressed:
-                    handle_key_press(event.key);
-                    break;
-                case EventType::Released:
-                    handle_key_release(event.key);
-                    break;
-            }
-        }
-    }
-    discard_events(m_next_frame);
-}
+void ObpfTetrion::process_keys(KeyState const key_state) {
+    using std::ranges::views::enumerate, std::ranges::views::filter;
 
-void ObpfTetrion::discard_events(u64 const frame) {
-    std::erase_if(m_events, [&](auto const& event) { return event.frame <= frame; });
+    auto const pressed_keys = determine_pressed_keys(m_last_key_state, key_state);
+    auto const released_keys = determine_released_keys(m_last_key_state, key_state);
+    m_last_key_state = key_state;
+
+    for (auto const [i, is_pressed] : filter(enumerate(pressed_keys), [](auto const tuple) { return get<1>(tuple); })) {
+        auto const key = magic_enum::enum_cast<Key>(gsl::narrow<std::underlying_type_t<Key>>(i));
+        assert(key.has_value());
+        handle_key_press(key.value());
+    }
+
+    for (auto const [i, is_released] : filter(enumerate(released_keys), [](auto const tuple) { return get<1>(tuple); })) {
+        auto const key = magic_enum::enum_cast<Key>(gsl::narrow<std::underlying_type_t<Key>>(i));
+        assert(key.has_value());
+        handle_key_release(key.value());
+    }
 }
 
 void ObpfTetrion::handle_key_press(Key const key) {

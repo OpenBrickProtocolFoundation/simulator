@@ -61,4 +61,9 @@ function(obpf_simulator_setup_dependencies)
             OPTIONS
             "BUILD_SHARED_LIBS OFF"
     )
+    CPMAddPackage(
+            NAME MAGIC_ENUM
+            GITHUB_REPOSITORY Neargye/magic_enum
+            VERSION 0.9.6
+    )
 endfunction()
