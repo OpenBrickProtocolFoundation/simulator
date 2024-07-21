@@ -133,10 +133,17 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
     auto const mino_positions = get_mino_positions(tetromino);
     for (auto const position : mino_positions) {
-        if (position.x < 0 or position.x >= gsl::narrow<i32>(Matrix::width)
-            or position.y >= gsl::narrow<i32>(Matrix::height) or m_matrix[position] != TetrominoType::Empty) {
+        // clang-format off
+        if (
+            position.x < 0
+            or position.x >= gsl::narrow<i32>(Matrix::width)
+            or position.y < 0
+            or position.y >= gsl::narrow<i32>(Matrix::height)
+            or m_matrix[position] != TetrominoType::Empty
+        ) {
             return false;
         }
+        // clang-format on
     }
     return true;
 }
