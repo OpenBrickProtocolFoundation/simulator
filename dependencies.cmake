@@ -5,7 +5,7 @@ function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME SPDLOG
             GITHUB_REPOSITORY gabime/spdlog
-            VERSION 1.12.0
+            VERSION 1.14.1
             OPTIONS
             "SPDLOG_BUILD_EXAMPLE OFF"
             "SPDLOG_BUILD_TESTS OFF"
