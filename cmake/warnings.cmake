@@ -26,10 +26,6 @@ function(obpf_simulator_set_warnings target_name warnings_as_errors)
             /permissive- # standards conformance mode for MSVC compiler.
     )
 
-    if (WIN32)
-        add_compile_definitions("_SILENCE_STDEXT_ARR_ITERS_DEPRECATION_WARNING")
-    endif ()
-
     set(clang_warnings
             -Wall
             -Wextra # reasonable and standard
