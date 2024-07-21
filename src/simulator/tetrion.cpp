@@ -47,6 +47,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     switch (m_entry_delay.poll()) {
         case EntryDelayPollResult::ShouldSpawn:
             spawn_next_tetromino();
+            m_lock_delay_state.clear();
             break;
         case EntryDelayPollResult::ShouldNotSpawn:
             break;

@@ -111,4 +111,8 @@ public:
         }
         return LockDelayPollResult::ShouldNotLock;
     }
+
+    void clear() {
+        *this = {};
+    }
 };
