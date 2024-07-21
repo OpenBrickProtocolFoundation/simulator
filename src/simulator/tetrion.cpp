@@ -337,7 +337,6 @@ void ObpfTetrion::hold() {
         }
         m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
         m_active_tetromino = std::nullopt;
-        m_entry_delay.start();
         m_is_hold_possible = false;
     }
 }
@@ -354,6 +353,7 @@ void ObpfTetrion::determine_lines_to_clear() {
     }
 
     if (not lines_to_clear.empty()) {
+        m_is_hold_possible = false;
         m_line_clear_delay.start(lines_to_clear);
     }
 }
