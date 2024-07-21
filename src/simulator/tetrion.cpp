@@ -70,6 +70,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     switch (m_lock_delay_state.poll()) {
         case LockDelayPollResult::ShouldLock:
             freeze_and_destroy_active_tetromino();
+            m_is_hold_possible = false;
             m_entry_delay.start();
             break;
         case LockDelayPollResult::ShouldNotLock:
@@ -329,6 +330,11 @@ void ObpfTetrion::drop() {
 
 void ObpfTetrion::hold() {
     if (m_is_hold_possible) {
+        if (m_hold_piece.has_value()) {
+            m_entry_delay.spawn_next_frame();
+        } else {
+            m_entry_delay.start();
+        }
         m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
         m_active_tetromino = std::nullopt;
         m_entry_delay.start();
