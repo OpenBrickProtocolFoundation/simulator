@@ -29,4 +29,8 @@ public:
     void start() {
         m_countdown = entry_delay;
     }
+
+    void spawn_next_frame() {
+        m_countdown = 1;
+    }
 };

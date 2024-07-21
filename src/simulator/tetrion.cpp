@@ -47,6 +47,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     switch (m_entry_delay.poll()) {
         case EntryDelayPollResult::ShouldSpawn:
             spawn_next_tetromino();
+            m_lock_delay_state.clear();
             break;
         case EntryDelayPollResult::ShouldNotSpawn:
             break;
@@ -69,6 +70,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     switch (m_lock_delay_state.poll()) {
         case LockDelayPollResult::ShouldLock:
             freeze_and_destroy_active_tetromino();
+            m_is_hold_possible = false;
             m_entry_delay.start();
             break;
         case LockDelayPollResult::ShouldNotLock:
@@ -132,10 +134,17 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
     auto const mino_positions = get_mino_positions(tetromino);
     for (auto const position : mino_positions) {
-        if (position.x < 0 or position.x >= gsl::narrow<i32>(Matrix::width)
-            or position.y >= gsl::narrow<i32>(Matrix::height) or m_matrix[position] != TetrominoType::Empty) {
+        // clang-format off
+        if (
+            position.x < 0
+            or position.x >= gsl::narrow<i32>(Matrix::width)
+            or position.y < 0
+            or position.y >= gsl::narrow<i32>(Matrix::height)
+            or m_matrix[position] != TetrominoType::Empty
+        ) {
             return false;
         }
+        // clang-format on
     }
     return true;
 }
@@ -321,9 +330,13 @@ void ObpfTetrion::drop() {
 
 void ObpfTetrion::hold() {
     if (m_is_hold_possible) {
+        if (m_hold_piece.has_value()) {
+            m_entry_delay.spawn_next_frame();
+        } else {
+            m_entry_delay.start();
+        }
         m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
         m_active_tetromino = std::nullopt;
-        m_entry_delay.start();
         m_is_hold_possible = false;
     }
 }
@@ -340,6 +353,7 @@ void ObpfTetrion::determine_lines_to_clear() {
     }
 
     if (not lines_to_clear.empty()) {
+        m_is_hold_possible = false;
         m_line_clear_delay.start(lines_to_clear);
     }
 }

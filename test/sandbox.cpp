@@ -1,4 +1,3 @@
-#include "utils.hpp"
 #include <crapper/crapper.hpp>
 #include <crapper/headers.hpp>
 #include <network/lobby_server.hpp>
@@ -7,6 +6,7 @@
 #include <sockets/detail/message_buffer.hpp>
 #include <sockets/sockets.hpp>
 #include <thread>
+#include "utils.hpp"
 
 struct CreateLobbyRequest final {
     std::string name;
@@ -90,6 +90,6 @@ int main() {
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // host
-    auto const result = lobby_server.destroy_lobby(user, std::move(lobby));
+    [[maybe_unused]] auto const result = lobby_server.destroy_lobby(user, std::move(lobby));
     assert(result.has_value());
 }
