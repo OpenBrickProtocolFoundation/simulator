@@ -15,5 +15,6 @@ include(project_options.cmake)
 add_subdirectory(src bin)
 
 if (${obpf_build_tests})
+    enable_testing()
     add_subdirectory(test)
 endif ()
