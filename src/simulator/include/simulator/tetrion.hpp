@@ -83,6 +83,7 @@ public:
 
 private:
     void freeze_and_destroy_active_tetromino();
+    [[nodiscard]] bool is_tetromino_completely_visible(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_tetromino_position_valid(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
     void spawn_next_tetromino();

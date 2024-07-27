@@ -48,10 +48,12 @@ ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(ObpfTetrion cons
     }
     return ObpfLineClearDelayState{
         .count = gsl::narrow<u8>(original_size),
-        .first = lines.at(0),
-        .second = lines.at(1),
-        .third = lines.at(2),
-        .fourth = lines.at(3),
+        .lines{
+               lines.at(0),
+               lines.at(1),
+               lines.at(2),
+               lines.at(3),
+               },
         .countdown = countdown,
         .delay = LineClearDelay::delay,
     };
@@ -77,21 +79,21 @@ void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) {
     delete tetrion;
 }
 
-ObpfMatrix const* obpf_tetrion_matrix(ObpfTetrion const* const tetrion) {
-    return reinterpret_cast<ObpfMatrix const*>(std::addressof(tetrion->matrix()));
-}
-
-ObpfTetrominoType obpf_matrix_get(ObpfMatrix const* const matrix, ObpfVec2 const position) {
-    auto const pos = Vec2{ position.x, position.y };
-    return static_cast<ObpfTetrominoType>((*reinterpret_cast<Matrix const*>(matrix))[pos]);
-}
-
 uint8_t obpf_tetrion_width() {
     return uint8_t{ Matrix::width };
 }
 
 uint8_t obpf_tetrion_height() {
     return uint8_t{ Matrix::height };
+}
+
+uint8_t obpf_tetrion_num_invisible_lines() {
+    return uint8_t{ Matrix::num_invisible_lines };
+}
+
+ObpfTetrominoType obpf_tetrion_matrix_get(ObpfTetrion const* const tetrion, ObpfVec2 const position) {
+    auto const pos = Vec2{ position.x, position.y };
+    return static_cast<ObpfTetrominoType>(tetrion->matrix()[pos]);
 }
 
 ObpfPreviewPieces obpf_tetrion_get_preview_pieces(ObpfTetrion const* tetrion) {

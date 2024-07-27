@@ -16,10 +16,7 @@ extern "C" {
 
     typedef struct {
         uint8_t count;
-        uint8_t first;
-        uint8_t second;
-        uint8_t third;
-        uint8_t fourth;
+        uint8_t lines[4];
         uint64_t countdown;
         uint64_t delay;
     } ObpfLineClearDelayState;
@@ -65,12 +62,12 @@ extern "C" {
     OBPF_EXPORT uint64_t obpf_tetrion_get_next_frame(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_simulate_next_frame(struct ObpfTetrion* tetrion, ObpfKeyState key_state);
     OBPF_EXPORT void obpf_destroy_tetrion(struct ObpfTetrion const* tetrion);
-    OBPF_EXPORT struct ObpfMatrix const* obpf_tetrion_matrix(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT uint8_t obpf_tetrion_width(void);
     OBPF_EXPORT uint8_t obpf_tetrion_height(void);
+    OBPF_EXPORT uint8_t obpf_tetrion_num_invisible_lines(void);
 
     // Matrix
-    OBPF_EXPORT ObpfTetrominoType obpf_matrix_get(struct ObpfMatrix const* matrix, ObpfVec2 position);
+    OBPF_EXPORT ObpfTetrominoType obpf_tetrion_matrix_get(const struct ObpfTetrion* tetrion, ObpfVec2 position);
 
     // clang-format on
 
