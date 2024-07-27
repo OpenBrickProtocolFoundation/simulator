@@ -10,6 +10,7 @@ class Matrix final {
 public:
     static constexpr auto width = std::size_t{ 10 };
     static constexpr auto height = std::size_t{ 22 };
+    static constexpr auto num_invisible_lines = std::size_t{ 2 };
 
 private:
     std::array<TetrominoType, width * height> m_minos{};

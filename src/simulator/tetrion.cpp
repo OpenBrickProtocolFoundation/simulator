@@ -131,6 +131,20 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     m_active_tetromino = std::nullopt;
 }
 
+[[nodiscard]] bool ObpfTetrion::is_tetromino_completely_visible(Tetromino const& tetromino) const {
+    if (not is_tetromino_position_valid(tetromino)) {
+        return false;
+    }
+
+    for (auto const& position : get_mino_positions(tetromino)) {
+        if (position.y < gsl::narrow<i32>(Matrix::num_invisible_lines)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
     auto const mino_positions = get_mino_positions(tetromino);
     for (auto const position : mino_positions) {
@@ -168,6 +182,21 @@ void ObpfTetrion::spawn_next_tetromino() {
         }
         m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
         m_is_hold_possible = true;
+    }
+
+    // todo: check game over state here
+
+    // clang-format off
+    for (
+        auto i = std::size_t{ 0 };
+        not is_tetromino_completely_visible(active_tetromino().value()) and i < Matrix::num_invisible_lines;
+        ++i
+    ) {  // clang-format on
+        m_active_tetromino->position.y += 1;
+        if (not is_active_tetromino_position_valid()) {
+            m_active_tetromino->position.y -= 1;
+            break;
+        }
     }
 
     m_is_soft_dropping = false;
