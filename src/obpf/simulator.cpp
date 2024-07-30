@@ -144,3 +144,15 @@ ObpfKeyState obpf_key_state_create(
           .get_bitmask(),
     };
 }
+
+ObpfStats obpf_tetrion_get_stats(ObpfTetrion const* tetrion) {
+    return ObpfStats{
+        .score = tetrion->score(),
+        .lines_cleared = tetrion->num_lines_cleared(),
+        .level = tetrion->level(),
+    };
+}
+
+bool obpf_tetrion_is_game_over(ObpfTetrion const* const tetrion) {
+    return tetrion->is_game_over();
+}

@@ -10,6 +10,7 @@ extern "C" {
 #include <stdint.h>
 #include "input.h"
 #include "rotation.h"
+#include "stats.hpp"
 #include "tetromino.h"
 #include "tetromino_type.h"
 #include "vec2.h"
@@ -48,6 +49,8 @@ extern "C" {
     );
 
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
+    OBPF_EXPORT ObpfStats obpf_tetrion_get_stats(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT bool obpf_tetrion_is_game_over(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT bool obpf_tetrion_try_get_active_tetromino(
         struct ObpfTetrion const* tetrion,

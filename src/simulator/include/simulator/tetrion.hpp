@@ -37,9 +37,11 @@ private:
     LockDelayState m_lock_delay_state;
     EntryDelay m_entry_delay;
     LineClearDelay m_line_clear_delay;
-    u32 m_lines_cleared = 0;
+    u32 m_num_lines_cleared = 0;
+    u64 m_score = 0;
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
+    bool m_is_game_over = false;
 
     static constexpr u64 gravity_delay_by_level(u32 const level) {
         constexpr auto delays = std::array<u64, 13>{
@@ -81,8 +83,23 @@ public:
         return m_next_frame;
     }
 
+    [[nodiscard]] u32 level() const;
+
+    [[nodiscard]] u64 score() const {
+        return m_score;
+    }
+
+    [[nodiscard]] u32 num_lines_cleared() const {
+        return m_num_lines_cleared;
+    }
+
+    [[nodiscard]] bool is_game_over() const {
+        return m_is_game_over;
+    }
+
 private:
     void freeze_and_destroy_active_tetromino();
+    [[nodiscard]] bool is_tetromino_completely_invisible(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_tetromino_completely_visible(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_tetromino_position_valid(Tetromino const& tetromino) const;
     [[nodiscard]] bool is_active_tetromino_position_valid() const;
@@ -96,11 +113,11 @@ private:
     void rotate(RotationDirection direction);
     void rotate_clockwise();
     void rotate_counter_clockwise();
-    void drop();
+    void hard_drop();
     void hold();
     void determine_lines_to_clear();
+    [[nodiscard]] u64 score_for_num_lines_cleared(std::size_t num_lines_cleared) const;
     void clear_lines(c2k::StaticVector<u8, 4> lines);
-    [[nodiscard]] u32 level() const;
     void refresh_ghost_tetromino();
 
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
