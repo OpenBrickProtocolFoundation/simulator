@@ -31,6 +31,11 @@
 }
 
 void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
+    if (is_game_over()) {
+        ++m_next_frame;
+        return;
+    }
+
     auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
 
     if (std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
@@ -46,8 +51,12 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
 
     switch (m_entry_delay.poll()) {
         case EntryDelayPollResult::ShouldSpawn:
-            spawn_next_tetromino();
+            spawn_next_tetromino();  // this is where we could possibly have lost the game
             m_lock_delay_state.clear();
+            if (is_game_over()) {
+                ++m_next_frame;
+                return;
+            }
             break;
         case EntryDelayPollResult::ShouldNotSpawn:
             break;
@@ -69,8 +78,10 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
 
     switch (m_lock_delay_state.poll()) {
         case LockDelayPollResult::ShouldLock:
-            freeze_and_destroy_active_tetromino();
+            freeze_and_destroy_active_tetromino();  // we could lose the game here due to "Lock Out"
             m_is_hold_possible = false;
+            // Even if we lost the game, it's not an error to start the entry delay -- it will simply get
+            // ignored at the start of the next frame.
             m_entry_delay.start();
             break;
         case LockDelayPollResult::ShouldNotLock:
@@ -120,29 +131,35 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     return m_hold_piece;
 }
 
+[[nodiscard]] u32 ObpfTetrion::level() const {
+    return m_num_lines_cleared / 10;
+}
+
 void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     if (not active_tetromino().has_value()) {
         return;
     }
     auto const mino_positions = get_mino_positions(active_tetromino().value());
+    if (is_tetromino_completely_invisible(active_tetromino().value())) {
+        m_is_game_over = true;
+    }
     for (auto const position : mino_positions) {
         m_matrix[position] = active_tetromino().value().type;
     }
     m_active_tetromino = std::nullopt;
 }
 
+bool ObpfTetrion::is_tetromino_completely_invisible(Tetromino const& tetromino) const {
+    return std::ranges::all_of(get_mino_positions(tetromino), [](auto const position) {
+        return position.y < gsl::narrow<i32>(Matrix::num_invisible_lines);
+    });
+}
+
 [[nodiscard]] bool ObpfTetrion::is_tetromino_completely_visible(Tetromino const& tetromino) const {
-    if (not is_tetromino_position_valid(tetromino)) {
-        return false;
-    }
-
-    for (auto const& position : get_mino_positions(tetromino)) {
-        if (position.y < gsl::narrow<i32>(Matrix::num_invisible_lines)) {
-            return false;
-        }
-    }
-
-    return true;
+    return is_tetromino_position_valid(tetromino)
+           and std::ranges::all_of(get_mino_positions(tetromino), [](auto const position) {
+                   return position.y >= gsl::narrow<i32>(Matrix::num_invisible_lines);
+               });
 }
 
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
@@ -184,7 +201,11 @@ void ObpfTetrion::spawn_next_tetromino() {
         m_is_hold_possible = true;
     }
 
-    // todo: check game over state here
+    if (not is_active_tetromino_position_valid()) {
+        m_is_game_over = true;
+        m_is_soft_dropping = false;
+        return;
+    }
 
     // clang-format off
     for (
@@ -236,7 +257,7 @@ void ObpfTetrion::handle_key_press(Key const key) {
             m_next_gravity_frame = m_next_frame;
             break;
         case Key::Drop:
-            drop();
+            hard_drop();
             break;
         case Key::RotateClockwise:
             rotate_clockwise();
@@ -303,6 +324,9 @@ void ObpfTetrion::move_down(DownMovementType const movement_type) {
     ++m_active_tetromino.value().position.y;
     if (is_active_tetromino_position_valid()) {
         m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::MovedDown);
+        if (movement_type == DownMovementType::SoftDrop) {
+            ++m_score;
+        }
     } else {
         --m_active_tetromino.value().position.y;
         switch (movement_type) {
@@ -346,14 +370,19 @@ void ObpfTetrion::rotate_counter_clockwise() {
     rotate(RotationDirection::CounterClockwise);
 }
 
-void ObpfTetrion::drop() {
+void ObpfTetrion::hard_drop() {
     if (not active_tetromino().has_value()) {
         return;
     }
+    auto num_lines_dropped = std::size_t{ 0 };
     do {
         ++m_active_tetromino.value().position.y;
+        ++num_lines_dropped;
     } while (is_active_tetromino_position_valid());
     --m_active_tetromino.value().position.y;
+    --num_lines_dropped;
+    static constexpr auto score_per_line = u64{ 2 };
+    m_score += num_lines_dropped * score_per_line;
     m_lock_delay_state.on_hard_drop_lock();
 }
 
@@ -387,7 +416,13 @@ void ObpfTetrion::determine_lines_to_clear() {
     }
 }
 
+[[nodiscard]] u64 ObpfTetrion::score_for_num_lines_cleared(std::size_t const num_lines_cleared) const {
+    static constexpr auto score_multipliers = std::array<std::size_t, 5>{ 0, 100, 300, 500, 800 };
+    return score_multipliers.at(num_lines_cleared) * (level() + 1);
+}
+
 void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
+    m_score += score_for_num_lines_cleared(lines.size());
     auto num_lines_cleared = decltype(lines.front()){ 0 };
     for (auto const line_to_clear : lines) {
         for (auto i = decltype(line_to_clear){ 0 }; i < line_to_clear; ++i) {
@@ -397,11 +432,7 @@ void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
         ++num_lines_cleared;
         m_matrix.fill(num_lines_cleared, TetrominoType::Empty);
     }
-    m_lines_cleared += gsl::narrow<decltype(m_lines_cleared)>(lines.size());
-}
-
-[[nodiscard]] u32 ObpfTetrion::level() const {
-    return m_lines_cleared / 10;
+    m_num_lines_cleared += gsl::narrow<decltype(m_num_lines_cleared)>(lines.size());
 }
 
 void ObpfTetrion::refresh_ghost_tetromino() {
