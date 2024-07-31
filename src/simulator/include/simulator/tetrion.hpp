@@ -7,6 +7,7 @@
 #include <lib2k/types.hpp>
 #include <optional>
 #include <vector>
+#include "action.hpp"
 #include "bag.hpp"
 #include "delayed_auto_shift.hpp"
 #include "entry_delay.hpp"
@@ -18,10 +19,15 @@
 #include "tetromino.hpp"
 
 struct ObpfTetrion final {
+public:
+    using ActionHandler = void (*)(Action action, void* user_data);
+
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
 
+    ActionHandler m_action_handler = nullptr;
+    void* m_action_handler_user_data = nullptr;
     Matrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
     std::optional<Tetromino> m_ghost_tetromino;
@@ -59,7 +65,22 @@ public:
     explicit ObpfTetrion(std::uint64_t const seed)
         : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
+        m_lock_delay_state.set_on_touch_handler([this] {
+            if (m_action_handler) {
+                m_action_handler(Action::Touch, m_action_handler_user_data);
+            }
+        });
         spawn_next_tetromino();
+    }
+
+    ObpfTetrion(ObpfTetrion const& other) = delete;
+    ObpfTetrion(ObpfTetrion&& other) noexcept = default;
+    ObpfTetrion& operator=(ObpfTetrion const& other) = delete;
+    ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
+
+    void set_action_handler(ActionHandler const handler, void* const user_data) {
+        m_action_handler = handler;
+        m_action_handler_user_data = user_data;
     }
 
     [[nodiscard]] Matrix const& matrix() const {

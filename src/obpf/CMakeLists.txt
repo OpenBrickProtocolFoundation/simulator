@@ -15,7 +15,8 @@ add_library(obpf
         include/obpf/lobby.h
         lobby.cpp
         include/obpf/rotation.h
-        include/obpf/stats.hpp
+        include/obpf/stats.h
+        include/obpf/action.h
 )
 
 target_compile_definitions(obpf PRIVATE "simulator_EXPORTS")

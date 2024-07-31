@@ -8,9 +8,10 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "action.h"
 #include "input.h"
 #include "rotation.h"
-#include "stats.hpp"
+#include "stats.h"
 #include "tetromino.h"
 #include "tetromino_type.h"
 #include "vec2.h"
@@ -34,6 +35,8 @@ extern "C" {
         uint8_t bitmask;
     } ObpfKeyState;
 
+    typedef void (*ObpfActionHandler)(ObpfAction action, void* user_data);
+
     // clang-format off
 
     // Tetrion
@@ -49,6 +52,11 @@ extern "C" {
     );
 
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
+    OBPF_EXPORT void obpf_tetrion_set_action_handler(
+        struct ObpfTetrion* tetrion,
+        ObpfActionHandler handler,
+        void* user_data
+    );
     OBPF_EXPORT ObpfStats obpf_tetrion_get_stats(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT bool obpf_tetrion_is_game_over(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(struct ObpfTetrion const* tetrion);

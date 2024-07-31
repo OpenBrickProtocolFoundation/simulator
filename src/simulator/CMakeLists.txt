@@ -16,6 +16,7 @@ add_library(simulator STATIC
         include/simulator/entry_delay.hpp
         include/simulator/line_clear_delay.hpp
         include/simulator/key_state.hpp
+        include/simulator/action.hpp
 )
 
 target_include_directories(simulator

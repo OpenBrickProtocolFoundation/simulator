@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <functional>
 #include <lib2k/types.hpp>
 
 enum class LockDelayPollResult {
@@ -19,11 +20,16 @@ private:
     u64 m_delay_counter = 0;
     u32 m_num_lock_delays_executed = 0;
     bool m_can_lock = false;
+    std::function<void()> m_on_touch_handler;
 
     static constexpr auto delay = u64{ 30 };
     static constexpr auto max_num_lock_delays = u32{ 30 };
 
 public:
+    void set_on_touch_handler(std::function<void()> on_touch_handler) {
+        m_on_touch_handler = std::move(on_touch_handler);
+    }
+
     /**
      * Call this function when you would normally lock the tetromino because of applied gravity.
      */
@@ -33,6 +39,9 @@ public:
             m_delay_active = true;
             m_delay_counter = delay;
             m_num_lock_delays_executed = 1;
+            if (m_on_touch_handler) {
+                m_on_touch_handler();
+            }
         }
     }
 
@@ -46,6 +55,9 @@ public:
             m_delay_active = true;
             m_delay_counter = delay;
             m_num_lock_delays_executed = 1;
+            if (m_on_touch_handler) {
+                m_on_touch_handler();
+            }
         } else {
             on_hard_drop_lock();
         }
@@ -60,6 +72,9 @@ public:
         m_delay_active = true;
         m_delay_counter = 1;  // this forces the tetromino to lock immediately
         m_num_lock_delays_executed = max_num_lock_delays;  // should not be necessary, but just in case
+        if (m_on_touch_handler) {
+            m_on_touch_handler();
+        }
     }
 
     /**
@@ -68,15 +83,16 @@ public:
     void on_tetromino_moved(LockDelayMovementType const movement_type) {
         switch (movement_type) {
             case LockDelayMovementType::MovedDown:
-
                 break;
             case LockDelayMovementType::NotMovedDown:
                 if ((not m_delay_active) or (m_num_lock_delays_executed >= max_num_lock_delays)) {
                     return;
                 }
-
                 m_delay_counter = delay;
                 ++m_num_lock_delays_executed;
+                if (m_on_touch_handler) {
+                    m_on_touch_handler();
+                }
                 break;
         }
     }
@@ -113,6 +129,8 @@ public:
     }
 
     void clear() {
+        auto handler = std::move(m_on_touch_handler);
         *this = {};
+        m_on_touch_handler = std::move(handler);
     }
 };
