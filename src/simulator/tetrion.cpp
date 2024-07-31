@@ -354,6 +354,12 @@ void ObpfTetrion::rotate(RotationDirection const direction) {
         m_active_tetromino->position += translation;
         if (is_active_tetromino_position_valid()) {
             m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+            if (m_action_handler != nullptr) {
+                m_action_handler(
+                    direction == RotationDirection::Clockwise ? Action::RotateCW : Action::RotateCCW,
+                    m_action_handler_user_data
+                );
+            }
             return;
         }
         m_active_tetromino->position -= translation;
@@ -384,6 +390,10 @@ void ObpfTetrion::hard_drop() {
     static constexpr auto score_per_line = u64{ 2 };
     m_score += num_lines_dropped * score_per_line;
     m_lock_delay_state.on_hard_drop_lock();
+
+    if (m_action_handler != nullptr) {
+        m_action_handler(Action::HardDrop, m_action_handler_user_data);
+    }
 }
 
 void ObpfTetrion::hold() {
@@ -413,6 +423,12 @@ void ObpfTetrion::determine_lines_to_clear() {
     if (not lines_to_clear.empty()) {
         m_is_hold_possible = false;
         m_line_clear_delay.start(lines_to_clear);
+        if (m_action_handler) {
+            m_action_handler(
+                static_cast<Action>(std::to_underlying(Action::Clear1) + lines_to_clear.size() - 1),
+                m_action_handler_user_data
+            );
+        }
     }
 }
 

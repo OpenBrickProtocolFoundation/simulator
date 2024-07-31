@@ -156,3 +156,7 @@ ObpfStats obpf_tetrion_get_stats(ObpfTetrion const* tetrion) {
 bool obpf_tetrion_is_game_over(ObpfTetrion const* const tetrion) {
     return tetrion->is_game_over();
 }
+
+void obpf_tetrion_set_action_handler(ObpfTetrion* const tetrion, ObpfActionHandler const handler, void* const user_data) {
+    tetrion->set_action_handler(reinterpret_cast<ObpfTetrion::ActionHandler>(handler), user_data);
+}
