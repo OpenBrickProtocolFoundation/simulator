@@ -36,7 +36,7 @@ private:
     bool m_is_hold_possible = true;
     u64 m_next_frame = 0;
     KeyState m_last_key_state;
-    c2k::Random m_random;
+    std::mt19937_64 m_random;
     std::array<Bag, 2> m_bags;
     usize m_bag_index = 0;
     DelayedAutoShiftState m_auto_shift_state;
@@ -81,6 +81,10 @@ public:
     void set_action_handler(ActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
         m_action_handler_user_data = user_data;
+    }
+
+    [[nodiscard]] Matrix& matrix() {
+        return m_matrix;
     }
 
     [[nodiscard]] Matrix const& matrix() const {
@@ -141,5 +145,5 @@ private:
     void clear_lines(c2k::StaticVector<u8, 4> lines);
     void refresh_ghost_tetromino();
 
-    [[nodiscard]] static std::array<Bag, 2> create_two_bags(c2k::Random& random);
+    [[nodiscard]] static std::array<Bag, 2> create_two_bags(std::mt19937_64& random);
 };

@@ -68,6 +68,7 @@ extern "C" {
         struct ObpfTetrion const* tetrion,
         struct ObpfTetromino* out_tetromino
     );
+    OBPF_EXPORT ObpfTetrominoType obpf_tetrion_matrix_get(const struct ObpfTetrion* tetrion, ObpfVec2 position);
     OBPF_EXPORT ObpfPreviewPieces obpf_tetrion_get_preview_pieces(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfTetrominoType obpf_tetrion_get_hold_piece(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT uint64_t obpf_tetrion_get_next_frame(struct ObpfTetrion const* tetrion);
