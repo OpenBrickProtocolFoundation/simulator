@@ -53,6 +53,21 @@ public:
         return true;
     }
 
+    [[nodiscard]] bool is_empty() const {
+        for (auto column = std::size_t{ 0 }; column < width; ++column) {
+            for (auto row = std::size_t{ 0 }; row < height; ++row) {
+                auto const position = Vec2{
+                    gsl::narrow<decltype(Vec2::x)>(column),
+                    gsl::narrow<decltype(Vec2::y)>(row),
+                };
+                if ((*this)[position] != TetrominoType::Empty) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     [[nodiscard]] TetrominoType operator[](Vec2 const index) const {
         return m_minos.at(gsl::narrow<usize>(index.y) * width + gsl::narrow<usize>(index.x));
     }

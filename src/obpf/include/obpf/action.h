@@ -13,6 +13,7 @@ extern "C" {
         OBPF_ACTION_CLEAR2,
         OBPF_ACTION_CLEAR3,
         OBPF_ACTION_CLEAR4,
+        OBPF_ACTION_ALL_CLEAR,
     } ObpfAction;
 
 #ifdef __cplusplus

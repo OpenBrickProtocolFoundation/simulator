@@ -9,4 +9,5 @@ enum class Action {
     Clear2,
     Clear3,
     Clear4,
+    AllClear,
 };

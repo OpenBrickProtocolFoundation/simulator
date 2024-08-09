@@ -438,6 +438,7 @@ void ObpfTetrion::determine_lines_to_clear() {
 }
 
 void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
+    assert(not lines.empty());
     m_score += score_for_num_lines_cleared(lines.size());
     auto num_lines_cleared = decltype(lines.front()){ 0 };
     for (auto const line_to_clear : lines) {
@@ -449,6 +450,9 @@ void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
         m_matrix.fill(num_lines_cleared, TetrominoType::Empty);
     }
     m_num_lines_cleared += gsl::narrow<decltype(m_num_lines_cleared)>(lines.size());
+    if (m_matrix.is_empty() and m_action_handler != nullptr) {
+        m_action_handler(Action::AllClear, m_action_handler_user_data);
+    }
 }
 
 void ObpfTetrion::refresh_ghost_tetromino() {
@@ -467,7 +471,7 @@ void ObpfTetrion::refresh_ghost_tetromino() {
     }
 }
 
-[[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(c2k::Random& random) {
+[[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(std::mt19937_64& random) {
     auto const bag0 = Bag{ random };
     auto const bag1 = Bag{ random };
     return std::array{ bag0, bag1 };
