@@ -355,7 +355,9 @@ void ObpfTetrion::rotate(RotationDirection const direction) {
             m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
             if (m_action_handler != nullptr) {
                 m_action_handler(
-                    direction == RotationDirection::Clockwise ? Action::RotateCW : Action::RotateCCW,
+                    static_cast<ObpfAction>(
+                        direction == RotationDirection::Clockwise ? Action::RotateCW : Action::RotateCCW
+                    ),
                     m_action_handler_user_data
                 );
             }
@@ -391,7 +393,7 @@ void ObpfTetrion::hard_drop() {
     m_lock_delay_state.on_hard_drop_lock();
 
     if (m_action_handler != nullptr) {
-        m_action_handler(Action::HardDrop, m_action_handler_user_data);
+        m_action_handler(static_cast<ObpfAction>(Action::HardDrop), m_action_handler_user_data);
     }
 }
 
@@ -424,7 +426,7 @@ void ObpfTetrion::determine_lines_to_clear() {
         m_line_clear_delay.start(lines_to_clear);
         if (m_action_handler) {
             m_action_handler(
-                static_cast<Action>(std::to_underlying(Action::Clear1) + lines_to_clear.size() - 1),
+                static_cast<ObpfAction>(std::to_underlying(Action::Clear1) + lines_to_clear.size() - 1),
                 m_action_handler_user_data
             );
         }
@@ -450,7 +452,7 @@ void ObpfTetrion::clear_lines(c2k::StaticVector<u8, 4> const lines) {
     }
     m_num_lines_cleared += gsl::narrow<decltype(m_num_lines_cleared)>(lines.size());
     if (m_matrix.is_empty() and m_action_handler != nullptr) {
-        m_action_handler(Action::AllClear, m_action_handler_user_data);
+        m_action_handler(static_cast<ObpfAction>(Action::AllClear), m_action_handler_user_data);
     }
 }
 

@@ -6,9 +6,9 @@
 extern "C" {
 #endif
 
+#include <common/common.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "action.h"
 #include "input.h"
 #include "rotation.h"
 #include "stats.h"
@@ -34,8 +34,6 @@ extern "C" {
     typedef struct {
         uint8_t bitmask;
     } ObpfKeyState;
-
-    typedef void (*ObpfActionHandler)(ObpfAction action, void* user_data);
 
     // clang-format off
 
@@ -63,6 +61,12 @@ extern "C" {
     OBPF_EXPORT bool obpf_tetrion_try_get_active_tetromino(
         struct ObpfTetrion const* tetrion,
         struct ObpfTetromino* out_tetromino
+    );
+    OBPF_EXPORT bool obpf_tetrion_try_get_active_tetromino_transform(
+        struct ObpfTetrion const* tetrion,
+        ObpfTetrominoType* out_type,
+        ObpfRotation* out_rotation,
+        ObpfVec2* out_position
     );
     OBPF_EXPORT bool obpf_tetrion_try_get_ghost_tetromino(
         struct ObpfTetrion const* tetrion,

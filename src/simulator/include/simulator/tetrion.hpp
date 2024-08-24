@@ -1,5 +1,6 @@
 #pragma once
 
+#include <common/common.h>
 #include <array>
 #include <cstdint>
 #include <lib2k/random.hpp>
@@ -19,14 +20,11 @@
 #include "tetromino.hpp"
 
 struct ObpfTetrion final {
-public:
-    using ActionHandler = void (*)(Action action, void* user_data);
-
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
 
-    ActionHandler m_action_handler = nullptr;
+    ObpfActionHandler m_action_handler = nullptr;
     void* m_action_handler_user_data = nullptr;
     Matrix m_matrix;
     std::optional<Tetromino> m_active_tetromino;
@@ -67,7 +65,7 @@ public:
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
         m_lock_delay_state.set_on_touch_handler([this] {
             if (m_action_handler) {
-                m_action_handler(Action::Touch, m_action_handler_user_data);
+                m_action_handler(static_cast<ObpfAction>(Action::Touch), m_action_handler_user_data);
             }
         });
         spawn_next_tetromino();
@@ -78,7 +76,7 @@ public:
     ObpfTetrion& operator=(ObpfTetrion const& other) = delete;
     ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
 
-    void set_action_handler(ActionHandler const handler, void* const user_data) {
+    void set_action_handler(ObpfActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
         m_action_handler_user_data = user_data;
     }
