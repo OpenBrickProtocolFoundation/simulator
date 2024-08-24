@@ -36,9 +36,8 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
         return;
     }
 
-    auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
-
-    if (std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
+    if (auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
+        std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
         auto const lines = std::get<LineClearDelay::DelayEnded>(line_clear_delay_poll_result).lines;
         clear_lines(lines);
     } else if (std::get_if<LineClearDelay::DelayIsActive>(&line_clear_delay_poll_result) != nullptr) {
@@ -89,13 +88,14 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     }
 
     switch (m_auto_shift_state.poll()) {
-        case AutoShiftDirection::Left:
+        using enum AutoShiftDirection;
+        case Left:
             move_left();
             break;
-        case AutoShiftDirection::Right:
+        case Right:
             move_right();
             break;
-        case AutoShiftDirection::None:
+        case None:
             break;
     }
     determine_lines_to_clear();
@@ -163,21 +163,18 @@ bool ObpfTetrion::is_tetromino_completely_invisible(Tetromino const& tetromino) 
 }
 
 [[nodiscard]] bool ObpfTetrion::is_tetromino_position_valid(Tetromino const& tetromino) const {
-    auto const mino_positions = get_mino_positions(tetromino);
-    for (auto const position : mino_positions) {
-        // clang-format off
-        if (
-            position.x < 0
-            or position.x >= gsl::narrow<i32>(Matrix::width)
-            or position.y < 0
-            or position.y >= gsl::narrow<i32>(Matrix::height)
-            or m_matrix[position] != TetrominoType::Empty
-        ) {
-            return false;
+    // clang-format off
+    return std::ranges::all_of(
+        get_mino_positions(tetromino),
+        [this](auto const position) {
+            return position.x >= 0
+                and position.x < gsl::narrow<i32>(Matrix::width)
+                and position.y >= 0
+                and position.y < gsl::narrow<i32>(Matrix::height)
+                and m_matrix[position] == TetrominoType::Empty;
         }
-        // clang-format on
-    }
-    return true;
+    );
+    // clang-format on
 }
 
 [[nodiscard]] bool ObpfTetrion::is_active_tetromino_position_valid() const {
@@ -225,7 +222,8 @@ void ObpfTetrion::spawn_next_tetromino() {
 }
 
 void ObpfTetrion::process_keys(KeyState const key_state) {
-    using std::ranges::views::enumerate, std::ranges::views::filter;
+    using std::ranges::views::enumerate;
+    using std::ranges::views::filter;
 
     auto const pressed_keys = determine_pressed_keys(m_last_key_state, key_state);
     auto const released_keys = determine_released_keys(m_last_key_state, key_state);
@@ -246,26 +244,27 @@ void ObpfTetrion::process_keys(KeyState const key_state) {
 
 void ObpfTetrion::handle_key_press(Key const key) {
     switch (key) {
-        case Key::Left:
+        using enum Key;
+        case Left:
             m_auto_shift_state.left_pressed();
             break;
-        case Key::Right:
+        case Right:
             m_auto_shift_state.right_pressed();
             break;
-        case Key::Down:
+        case Down:
             m_is_soft_dropping = true;
             m_next_gravity_frame = m_next_frame;
             break;
-        case Key::Drop:
+        case Drop:
             hard_drop();
             break;
-        case Key::RotateClockwise:
+        case RotateClockwise:
             rotate_clockwise();
             break;
-        case Key::RotateCounterClockwise:
+        case RotateCounterClockwise:
             rotate_counter_clockwise();
             break;
-        case Key::Hold:
+        case Hold:
             hold();
             break;
     }
@@ -273,20 +272,21 @@ void ObpfTetrion::handle_key_press(Key const key) {
 
 void ObpfTetrion::handle_key_release(Key const key) {
     switch (key) {
-        case Key::Left:
+        using enum Key;
+        case Left:
             m_auto_shift_state.left_released();
             return;
-        case Key::Right:
+        case Right:
             m_auto_shift_state.right_released();
             return;
-        case Key::Down:
+        case Down:
             m_is_soft_dropping = false;
             m_next_gravity_frame = m_next_frame + gravity_delay_by_level(level());
             return;
-        case Key::Drop:
-        case Key::RotateClockwise:
-        case Key::RotateCounterClockwise:
-        case Key::Hold:
+        case Drop:
+        case RotateClockwise:
+        case RotateCounterClockwise:
+        case Hold:
             // releasing these keys does nothing, so we can ignore them
             return;
     }
@@ -349,8 +349,7 @@ void ObpfTetrion::rotate(RotationDirection const direction) {
     auto const to_rotation = from_rotation + direction;
     m_active_tetromino->rotation = to_rotation;
 
-    auto const& wall_kick_table = get_wall_kick_table(m_active_tetromino->type, from_rotation, to_rotation);
-    for (auto const translation : wall_kick_table) {
+    for (auto const translation : get_wall_kick_table(m_active_tetromino->type, from_rotation, to_rotation)) {
         m_active_tetromino->position += translation;
         if (is_active_tetromino_position_valid()) {
             m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
