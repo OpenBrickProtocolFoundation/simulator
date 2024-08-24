@@ -16,7 +16,6 @@ add_library(obpf
         lobby.cpp
         include/obpf/rotation.h
         include/obpf/stats.h
-        include/obpf/action.h
 )
 
 target_compile_definitions(obpf PRIVATE "simulator_EXPORTS")
@@ -28,6 +27,7 @@ target_link_libraries(obpf
         simulator
         network
         spdlog::spdlog
+        common
 )
 
 target_include_directories(obpf

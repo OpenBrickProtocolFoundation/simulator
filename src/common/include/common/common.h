@@ -16,6 +16,8 @@ extern "C" {
         OBPF_ACTION_ALL_CLEAR,
     } ObpfAction;
 
+    typedef void (*ObpfActionHandler)(ObpfAction action, void* user_data);
+
 #ifdef __cplusplus
 }
 #endif

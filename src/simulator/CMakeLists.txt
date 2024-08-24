@@ -26,6 +26,8 @@ target_include_directories(simulator
 )
 
 target_link_libraries(simulator
+        PUBLIC
+        common
         PRIVATE
         obpf_simulator_project_options
 )

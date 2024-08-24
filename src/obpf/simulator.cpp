@@ -63,6 +63,31 @@ bool obpf_tetrion_try_get_active_tetromino(ObpfTetrion const* const tetrion, Obp
     return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::ActiveTetromino);
 }
 
+bool obpf_tetrion_try_get_active_tetromino_transform(
+    struct ObpfTetrion const* const tetrion,
+    ObpfTetrominoType* const out_type,
+    ObpfRotation* const out_rotation,
+    ObpfVec2* const out_position
+) {
+    auto const tetromino = tetrion->active_tetromino();
+    if (not tetromino.has_value()) {
+        return false;
+    }
+    if (out_type != nullptr) {
+        *out_type = static_cast<ObpfTetrominoType>(tetromino->type);
+    }
+    if (out_rotation != nullptr) {
+        *out_rotation = static_cast<ObpfRotation>(tetromino->rotation);
+    }
+    if (out_position != nullptr) {
+        *out_position = ObpfVec2{
+            gsl::narrow<std::uint8_t>(tetromino->position.x),
+            gsl::narrow<std::uint8_t>(tetromino->position.y),
+        };
+    }
+    return true;
+}
+
 bool obpf_tetrion_try_get_ghost_tetromino(ObpfTetrion const* tetrion, ObpfTetromino* out_tetromino) {
     return try_get_tetromino(tetrion, out_tetromino, TetrominoSelection::GhostTetromino);
 }
@@ -123,8 +148,7 @@ ObpfMinoPositions obpf_tetromino_get_mino_positions(ObpfTetrominoType const type
 }
 
 ObpfTetrominoType obpf_tetrion_get_hold_piece(ObpfTetrion const* const tetrion) {
-    auto const hold_piece = tetrion->hold_piece();
-    if (hold_piece.has_value()) {
+    if (auto const hold_piece = tetrion->hold_piece(); hold_piece.has_value()) {
         return static_cast<ObpfTetrominoType>(hold_piece.value());
     }
     return OBPF_TETROMINO_TYPE_EMPTY;
@@ -158,5 +182,5 @@ bool obpf_tetrion_is_game_over(ObpfTetrion const* const tetrion) {
 }
 
 void obpf_tetrion_set_action_handler(ObpfTetrion* const tetrion, ObpfActionHandler const handler, void* const user_data) {
-    tetrion->set_action_handler(reinterpret_cast<ObpfTetrion::ActionHandler>(handler), user_data);
+    tetrion->set_action_handler(handler, user_data);
 }
