@@ -40,6 +40,12 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
     return new ObpfTetrion{ seed };
 }
 
+ObpfTetrion* obpf_clone_tetrion(ObpfTetrion const* const tetrion) {
+    auto result = new ObpfTetrion{ *tetrion };
+    result->set_action_handler(nullptr, nullptr);
+    return result;
+}
+
 ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(ObpfTetrion const* tetrion) {
     auto [lines, countdown] = tetrion->line_clear_delay_state();
     auto const original_size = lines.size();
@@ -67,7 +73,7 @@ bool obpf_tetrion_try_get_active_tetromino_transform(
     struct ObpfTetrion const* const tetrion,
     ObpfTetrominoType* const out_type,
     ObpfRotation* const out_rotation,
-    ObpfVec2* const out_position
+    ObpfVec2i* const out_position
 ) {
     auto const tetromino = tetrion->active_tetromino();
     if (not tetromino.has_value()) {
@@ -80,9 +86,9 @@ bool obpf_tetrion_try_get_active_tetromino_transform(
         *out_rotation = static_cast<ObpfRotation>(tetromino->rotation);
     }
     if (out_position != nullptr) {
-        *out_position = ObpfVec2{
-            gsl::narrow<std::uint8_t>(tetromino->position.x),
-            gsl::narrow<std::uint8_t>(tetromino->position.y),
+        *out_position = ObpfVec2i{
+            tetromino->position.x,
+            tetromino->position.y,
         };
     }
     return true;

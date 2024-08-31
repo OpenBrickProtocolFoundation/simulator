@@ -8,9 +8,9 @@ struct Bag final {
     std::array<TetrominoType, 7> tetrominos{};
 
     explicit Bag(std::mt19937_64& random) {
+        using enum TetrominoType;
         tetrominos = std::array{
-            TetrominoType::I, TetrominoType::J, TetrominoType::L, TetrominoType::O,
-            TetrominoType::S, TetrominoType::T, TetrominoType::Z,
+            I, J, L, O, S, T, Z,
         };
 
         // We cannot use std::shuffle here because it presumably uses std::uniform_int_distribution which is not

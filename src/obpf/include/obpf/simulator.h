@@ -50,6 +50,7 @@ extern "C" {
     );
 
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
+    OBPF_EXPORT struct ObpfTetrion* obpf_clone_tetrion(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_set_action_handler(
         struct ObpfTetrion* tetrion,
         ObpfActionHandler handler,
@@ -66,7 +67,7 @@ extern "C" {
         struct ObpfTetrion const* tetrion,
         ObpfTetrominoType* out_type,
         ObpfRotation* out_rotation,
-        ObpfVec2* out_position
+        ObpfVec2i* out_position
     );
     OBPF_EXPORT bool obpf_tetrion_try_get_ghost_tetromino(
         struct ObpfTetrion const* tetrion,

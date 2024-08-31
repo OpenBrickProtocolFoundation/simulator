@@ -50,14 +50,14 @@ function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME CRAPPER
             GITHUB_REPOSITORY mgerhold/crapper
-            VERSION 0.3.0
+            VERSION 0.3.1
             OPTIONS
             "BUILD_SHARED_LIBS OFF"
     )
     CPMAddPackage(
             NAME LIB2K
             GITHUB_REPOSITORY mgerhold/lib2k
-            VERSION 0.0.4
+            VERSION 0.0.5
             OPTIONS
             "BUILD_SHARED_LIBS OFF"
     )

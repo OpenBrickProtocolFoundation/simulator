@@ -63,18 +63,8 @@ public:
     explicit ObpfTetrion(std::uint64_t const seed)
         : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
-        m_lock_delay_state.set_on_touch_handler([this] {
-            if (m_action_handler) {
-                m_action_handler(static_cast<ObpfAction>(Action::Touch), m_action_handler_user_data);
-            }
-        });
         spawn_next_tetromino();
     }
-
-    ObpfTetrion(ObpfTetrion const& other) = delete;
-    ObpfTetrion(ObpfTetrion&& other) noexcept = default;
-    ObpfTetrion& operator=(ObpfTetrion const& other) = delete;
-    ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
 
     void set_action_handler(ObpfActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
@@ -142,6 +132,7 @@ private:
     [[nodiscard]] u64 score_for_num_lines_cleared(std::size_t num_lines_cleared) const;
     void clear_lines(c2k::StaticVector<u8, 4> lines);
     void refresh_ghost_tetromino();
+    void on_touch_event() const;
 
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(std::mt19937_64& random);
 };
