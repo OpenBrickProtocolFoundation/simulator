@@ -50,6 +50,7 @@ extern "C" {
     );
 
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
+    OBPF_EXPORT struct ObpfTetrion* obpf_clone_tetrion(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_set_action_handler(
         struct ObpfTetrion* tetrion,
         ObpfActionHandler handler,

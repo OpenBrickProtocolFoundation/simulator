@@ -66,11 +66,6 @@ public:
         spawn_next_tetromino();
     }
 
-    ObpfTetrion(ObpfTetrion const& other) = delete;
-    ObpfTetrion(ObpfTetrion&& other) noexcept = default;
-    ObpfTetrion& operator=(ObpfTetrion const& other) = delete;
-    ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
-
     void set_action_handler(ObpfActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
         m_action_handler_user_data = user_data;

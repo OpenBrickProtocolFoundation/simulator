@@ -40,6 +40,12 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) {
     return new ObpfTetrion{ seed };
 }
 
+ObpfTetrion* obpf_clone_tetrion(ObpfTetrion const* const tetrion) {
+    auto result = new ObpfTetrion{ *tetrion };
+    result->set_action_handler(nullptr, nullptr);
+    return result;
+}
+
 ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(ObpfTetrion const* tetrion) {
     auto [lines, countdown] = tetrion->line_clear_delay_state();
     auto const original_size = lines.size();
