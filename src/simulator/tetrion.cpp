@@ -299,7 +299,10 @@ void ObpfTetrion::move_left() {
     }
     --m_active_tetromino.value().position.x;
     if (is_active_tetromino_position_valid()) {
-        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+        if (m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown)
+            == LockDelayEventResult::HasTouched) {
+            on_touch_event();
+        }
     } else {
         ++m_active_tetromino.value().position.x;
     }
@@ -311,30 +314,42 @@ void ObpfTetrion::move_right() {
     }
     ++m_active_tetromino.value().position.x;
     if (is_active_tetromino_position_valid()) {
-        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+        if (m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown)
+            == LockDelayEventResult::HasTouched) {
+            on_touch_event();
+        }
     } else {
         --m_active_tetromino.value().position.x;
     }
 }
 
 void ObpfTetrion::move_down(DownMovementType const movement_type) {
+    using enum DownMovementType;
+    using enum LockDelayEventResult;
+
     if (not active_tetromino().has_value()) {
         return;
     }
     ++m_active_tetromino.value().position.y;
     if (is_active_tetromino_position_valid()) {
-        m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::MovedDown);
-        if (movement_type == DownMovementType::SoftDrop) {
+        if (m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::MovedDown) == HasTouched) {
+            on_touch_event();
+        }
+        if (movement_type == SoftDrop) {
             ++m_score;
         }
     } else {
         --m_active_tetromino.value().position.y;
         switch (movement_type) {
-            case DownMovementType::Gravity:
-                m_lock_delay_state.on_gravity_lock();
+            case Gravity:
+                if (m_lock_delay_state.on_gravity_lock() == HasTouched) {
+                    on_touch_event();
+                }
                 break;
-            case DownMovementType::SoftDrop:
-                m_lock_delay_state.on_soft_drop_lock();
+            case SoftDrop:
+                if (m_lock_delay_state.on_soft_drop_lock() == HasTouched) {
+                    on_touch_event();
+                }
                 m_is_soft_dropping = false;
                 break;
         }
@@ -342,6 +357,9 @@ void ObpfTetrion::move_down(DownMovementType const movement_type) {
 }
 
 void ObpfTetrion::rotate(RotationDirection const direction) {
+    using enum LockDelayMovementType;
+    using enum LockDelayEventResult;
+
     if (not m_active_tetromino.has_value()) {
         return;
     }
@@ -352,7 +370,9 @@ void ObpfTetrion::rotate(RotationDirection const direction) {
     for (auto const translation : get_wall_kick_table(m_active_tetromino->type, from_rotation, to_rotation)) {
         m_active_tetromino->position += translation;
         if (is_active_tetromino_position_valid()) {
-            m_lock_delay_state.on_tetromino_moved(LockDelayMovementType::NotMovedDown);
+            if (m_lock_delay_state.on_tetromino_moved(NotMovedDown) == HasTouched) {
+                on_touch_event();
+            }
             if (m_action_handler != nullptr) {
                 m_action_handler(
                     static_cast<ObpfAction>(
@@ -390,7 +410,9 @@ void ObpfTetrion::hard_drop() {
     --num_lines_dropped;
     static constexpr auto score_per_line = u64{ 2 };
     m_score += num_lines_dropped * score_per_line;
-    m_lock_delay_state.on_hard_drop_lock();
+    if (m_lock_delay_state.on_hard_drop_lock() == LockDelayEventResult::HasTouched) {
+        on_touch_event();
+    }
 
     if (m_action_handler != nullptr) {
         m_action_handler(static_cast<ObpfAction>(Action::HardDrop), m_action_handler_user_data);
@@ -469,6 +491,12 @@ void ObpfTetrion::refresh_ghost_tetromino() {
             --m_ghost_tetromino->position.y;
             return;
         }
+    }
+}
+
+void ObpfTetrion::on_touch_event() const {
+    if (m_action_handler != nullptr) {
+        m_action_handler(static_cast<ObpfAction>(Action::Touch), m_action_handler_user_data);
     }
 }
 
