@@ -1,7 +1,6 @@
 #include <spdlog/spdlog.h>
 #include <cassert>
 #include <gsl/gsl>
-#include <iostream>
 #include <lib2k/static_vector.hpp>
 #include <lib2k/types.hpp>
 #include <magic_enum.hpp>
@@ -229,10 +228,36 @@ void ObpfTetrion::process_keys(KeyState const key_state) {
     auto const released_keys = determine_released_keys(m_last_key_state, key_state);
     m_last_key_state = key_state;
 
-    for (auto const [i, is_pressed] : filter(enumerate(pressed_keys), [](auto const tuple) { return get<1>(tuple); })) {
-        auto const key = magic_enum::enum_cast<Key>(gsl::narrow<std::underlying_type_t<Key>>(i));
-        assert(key.has_value());
-        handle_key_press(key.value());
+    /* To avoid certain kinds of errors, we have to process the different keys in a certain order. That is:
+     * 1. hold
+     * 2. sideways movement (left, right)
+     *    - if hold was pressed, ignore the following keys:
+     * 3. rotation
+     * 4. soft drop
+     * 5. hard drop */
+    auto const is_key_pressed = [&pressed_keys](Key const key) {
+        return pressed_keys.at(gsl::narrow<std::size_t>(std::to_underlying(key)));
+    };
+    auto const hold_pressed = is_key_pressed(Key::Hold);
+    if (hold_pressed) {
+        handle_key_press(Key::Hold);
+    }
+    for (auto const key : std::array{ Key::Left, Key::Right }) {
+        if (is_key_pressed(key)) {
+            handle_key_press(key);
+        }
+    }
+    if (not hold_pressed) {
+        for (auto const key : std::array{
+                 Key::RotateClockwise,
+                 Key::RotateCounterClockwise,
+                 Key::Down,
+                 Key::Drop,
+             }) {
+            if (is_key_pressed(key)) {
+                handle_key_press(key);
+            }
+        }
     }
 
     for (auto const [i, is_released] : filter(enumerate(released_keys), [](auto const tuple) { return get<1>(tuple); })) {
