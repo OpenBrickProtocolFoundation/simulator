@@ -236,7 +236,7 @@ void ObpfTetrion::process_keys(KeyState const key_state) {
      * 4. soft drop
      * 5. hard drop */
     auto const is_key_pressed = [&pressed_keys](Key const key) {
-        return pressed_keys.at(std::to_underlying(key));
+        return pressed_keys.at(gsl::narrow<std::size_t>(std::to_underlying(key)));
     };
     auto const hold_pressed = is_key_pressed(Key::Hold);
     if (hold_pressed) {
