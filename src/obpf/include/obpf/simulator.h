@@ -66,7 +66,7 @@ extern "C" {
         struct ObpfTetrion const* tetrion,
         ObpfTetrominoType* out_type,
         ObpfRotation* out_rotation,
-        ObpfVec2* out_position
+        ObpfVec2i* out_position
     );
     OBPF_EXPORT bool obpf_tetrion_try_get_ghost_tetromino(
         struct ObpfTetrion const* tetrion,
