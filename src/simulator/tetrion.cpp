@@ -77,7 +77,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     switch (m_lock_delay_state.poll()) {
         case LockDelayPollResult::ShouldLock:
             freeze_and_destroy_active_tetromino();  // we could lose the game here due to "Lock Out"
-            m_is_hold_possible = false;
+            m_is_hold_possible = true;
             // Even if we lost the game, it's not an error to start the entry delay -- it will simply get
             // ignored at the start of the next frame.
             m_entry_delay.start();
@@ -194,7 +194,6 @@ void ObpfTetrion::spawn_next_tetromino() {
             ++m_bag_index;
         }
         m_active_tetromino = Tetromino{ spawn_position, spawn_rotation, next_type };
-        m_is_hold_possible = true;
     }
 
     if (not is_active_tetromino_position_valid()) {
@@ -445,16 +444,17 @@ void ObpfTetrion::hard_drop() {
 }
 
 void ObpfTetrion::hold() {
-    if (m_is_hold_possible) {
-        if (m_hold_piece.has_value()) {
-            m_entry_delay.spawn_next_frame();
-        } else {
-            m_entry_delay.start();
-        }
-        m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
-        m_active_tetromino = std::nullopt;
-        m_is_hold_possible = false;
+    if (not m_is_hold_possible or not m_active_tetromino.has_value()) {
+        return;
     }
+    if (m_hold_piece.has_value()) {
+        m_entry_delay.spawn_next_frame();
+    } else {
+        m_entry_delay.start();
+    }
+    m_old_hold_piece = std::exchange(m_hold_piece, m_active_tetromino.value().type);
+    m_active_tetromino = std::nullopt;
+    m_is_hold_possible = false;
 }
 
 void ObpfTetrion::determine_lines_to_clear() {
