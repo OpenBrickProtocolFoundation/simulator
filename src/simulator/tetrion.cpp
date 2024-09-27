@@ -469,7 +469,6 @@ void ObpfTetrion::determine_lines_to_clear() {
     }
 
     if (not lines_to_clear.empty()) {
-        m_is_hold_possible = false;
         m_line_clear_delay.start(lines_to_clear);
         if (m_action_handler) {
             m_action_handler(
