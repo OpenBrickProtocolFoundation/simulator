@@ -18,7 +18,7 @@ struct ClientInfo final {
 
 class Server final {
 private:
-    c2k::ClientSocket m_lobby_socket;
+    std::optional<c2k::ClientSocket> m_lobby_socket;
     c2k::ServerSocket m_server_socket;
     std::vector<c2k::ClientSocket> m_client_sockets;
     c2k::Synchronized<std::vector<ClientInfo>> m_client_infos;
@@ -41,7 +41,7 @@ public:
           m_broadcasting_thread{ keep_broadcasting, std::ref(*this) },
           m_seed{ c2k::Random{}.next_integral<c2k::Random::Seed>() } {
         // todo: timeout
-        m_expected_player_count = static_cast<std::size_t>(m_lobby_socket.receive<std::uint16_t>().get());
+        m_expected_player_count = static_cast<std::size_t>(m_lobby_socket.value().receive<std::uint16_t>().get());
         spdlog::info("expected player count: {}", m_expected_player_count);
 
         m_client_sockets.reserve(m_expected_player_count);
@@ -50,10 +50,32 @@ public:
         });
         m_client_threads.reserve(m_expected_player_count);
 
-        if (m_lobby_socket.send(m_server_socket.local_address().port).get() != sizeof(std::uint16_t)) {
+        if (m_lobby_socket.value().send(m_server_socket.local_address().port).get() != sizeof(std::uint16_t)) {
             throw std::runtime_error{ "unable to send port to lobby server" };
         }
     }
+
+    explicit Server(std::uint16_t const game_server_port, std::uint8_t const num_expected_players)
+        : m_server_socket{ c2k::Sockets::create_server(
+              c2k::AddressFamily::Ipv4,
+              game_server_port,
+              [this](c2k::ClientSocket client) { accept_client_connection(std::move(client)); }
+          ) },
+          m_client_infos{ {} },
+          m_broadcasting_thread{ keep_broadcasting, std::ref(*this) },
+          m_seed{ c2k::Random{}.next_integral<c2k::Random::Seed>() } {
+        // todo: timeout
+        m_expected_player_count = num_expected_players;
+        spdlog::info("expected player count: {}", m_expected_player_count);
+
+        m_client_sockets.reserve(m_expected_player_count);
+        m_client_infos.apply([this](std::vector<ClientInfo>& client_infos) {
+            client_infos.reserve(m_expected_player_count);
+        });
+        m_client_threads.reserve(m_expected_player_count);
+    }
+
+    static Server start_on_port(std::uint16_t gameserver_port) {}
 
     Server(Server const&) = delete;
     Server(Server&&) noexcept = delete;

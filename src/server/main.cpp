@@ -23,16 +23,35 @@ template<std::integral Integer>
 }
 
 int main(int const argc, char const* const* const argv) {
-    if (argc != 2) {
-        std::cout << std::format("Usage: {} <lobby-port>\n", argv[0]);
-        return EXIT_FAILURE;
+    switch (argc) {
+        case 2: {
+            auto const lobby_port = parse_integer<std::uint16_t>(argv[1]);
+            if (not lobby_port.has_value()) {
+                std::cout << std::format("'{}' is not a valid port number\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            spdlog::info("lobby port = {}", lobby_port.value());
+            spdlog::info("starting gameserver");
+            auto const server = Server{ lobby_port.value() };
+        }
+        case 3: {
+            auto const game_server_port = parse_integer<std::uint16_t>(argv[1]);
+            if (not game_server_port.has_value()) {
+                std::cout << std::format("'{}' is not a valid port number\n", argv[1]);
+                return EXIT_FAILURE;
+            }
+            spdlog::info("game server port = {}", game_server_port.value());
+            auto const num_players = parse_integer<std::uint8_t>(argv[2]);
+            if (not num_players.has_value() or num_players.value() < 1) {
+                std::cout << std::format("'{}' is not a valid number of players\n", argv[2]);
+                return EXIT_FAILURE;
+            }
+            spdlog::info("number of players = {}", num_players.value());
+            spdlog::info("starting game server");
+            auto const server = Server{ game_server_port.value(), num_players.value() };
+        }
+        default:
+            std::cout << std::format("Usage: {} [<lobby-port>|<gameserver_port> <num_players>]\n", argv[0]);
+            return EXIT_FAILURE;
     }
-    auto const lobby_port = parse_integer<std::uint16_t>(argv[1]);
-    if (not lobby_port.has_value()) {
-        std::cout << std::format("'{}' is not a valid port number\n", argv[1]);
-        return EXIT_FAILURE;
-    }
-    spdlog::info("lobby port = {}", lobby_port.value());
-    spdlog::info("starting gameserver");
-    auto const server = Server{ lobby_port.value() };
 }

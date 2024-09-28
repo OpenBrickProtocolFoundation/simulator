@@ -3,6 +3,7 @@
 #include <gsl/gsl>
 #include <memory>
 #include <simulator/matrix.hpp>
+#include <simulator/multiplayer_tetrion.hpp>
 #include <simulator/tetrion.hpp>
 #include <simulator/tetromino.hpp>
 
@@ -44,6 +45,21 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
     return nullptr;
 } catch (...) {
     spdlog::error("Failed to create tetrion: Unknown error");
+    return nullptr;
+}
+
+struct ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint16_t const port) try {
+    auto tetrion = MultiplayerTetrion::create(host, port);
+    if (tetrion == nullptr) {
+        return nullptr;
+    }
+    return tetrion.release();
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to create multiplayer tetrion: {}", e.what());
+    return nullptr;
+} catch (...) {
+    spdlog::error("Failed to create multiplayer tetrion: Unknown error");
     return nullptr;
 }
 

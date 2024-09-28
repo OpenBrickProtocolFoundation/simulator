@@ -17,6 +17,10 @@ add_library(simulator STATIC
         include/simulator/line_clear_delay.hpp
         include/simulator/key_state.hpp
         include/simulator/action.hpp
+        include/simulator/multiplayer_tetrion.hpp
+        multiplayer_tetrion.cpp
+        include/simulator/observer_tetrion.hpp
+        observer_tetrion.cpp
 )
 
 target_include_directories(simulator
@@ -30,6 +34,7 @@ target_link_libraries(simulator
         common
         PRIVATE
         obpf_simulator_project_options
+        network
 )
 
 target_link_system_libraries(simulator

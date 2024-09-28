@@ -140,7 +140,7 @@ TEST(NetworkTests, SlightlyTooBigGridStateMessageFails) {
 
 TEST(NetworkTests, GameStartMessage) {
     auto const random_seed = static_cast<std::uint64_t>(std::random_device{}());
-    auto const message = GameStart{ 31, 180, random_seed };
+    auto const message = GameStart{ 31, 180, random_seed, 5 };
 
     auto const deserialized_message = send_receive_and_deserialize(message);
 
@@ -169,7 +169,7 @@ TEST(NetworkTests, SlightlyTooSmallGameStartMessageFails) {
 
 TEST(NetworkTests, SlightlyTooBigGameStartMessageFails) {
     auto buffer = c2k::MessageBuffer{};
-    buffer << std::to_underlying(MessageType::GameStart) << std::uint16_t{ 18 };  // 1 byte too many
+    buffer << std::to_underlying(MessageType::GameStart) << std::uint16_t{ 19 };  // 1 byte too many
     for (auto i = 0; i < 300; ++i) {
         buffer << std::uint8_t{ 42 };
     }

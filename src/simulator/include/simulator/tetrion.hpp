@@ -19,7 +19,7 @@
 #include "matrix.hpp"
 #include "tetromino.hpp"
 
-struct ObpfTetrion final {
+struct ObpfTetrion {
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
@@ -66,6 +66,12 @@ public:
         spawn_next_tetromino();
     }
 
+    ObpfTetrion(ObpfTetrion const& other) = default;
+    ObpfTetrion(ObpfTetrion&& other) noexcept = default;
+    ObpfTetrion& operator=(ObpfTetrion const& other) = default;
+    ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
+    virtual ~ObpfTetrion() = default;
+
     void set_action_handler(ObpfActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
         m_action_handler_user_data = user_data;
@@ -87,7 +93,7 @@ public:
         return m_ghost_tetromino;
     }
 
-    void simulate_next_frame(KeyState key_state);
+    virtual void simulate_next_frame(KeyState key_state);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
     [[nodiscard]] std::optional<TetrominoType> hold_piece() const;

@@ -165,14 +165,22 @@ static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) 
                << payload_size()
                << client_id
                << start_frame
-               << random_seed;
+               << random_seed
+               << num_players;
     // clang-format on
     assert(buffer.size() == payload_size() + header_size);
     return buffer;
 }
 
 [[nodiscard]] GameStart GameStart::deserialize(c2k::MessageBuffer& buffer) {
-    static constexpr auto required_num_bytes = c2k::detail::summed_sizeof<std::uint8_t, std::uint64_t, std::uint64_t>();
+    // clang-format off
+    static constexpr auto required_num_bytes = c2k::detail::summed_sizeof<
+        decltype(client_id),
+        decltype(start_frame),
+        decltype(random_seed),
+        decltype(num_players)
+    >();
+    // clang-format on
     if (buffer.size() < required_num_bytes) {
         throw MessageDeserializationError{ std::format(
             "too few bytes to deserialize GameStart message ({} needed, {} received)",
@@ -180,10 +188,22 @@ static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) 
             buffer.size()
         ) };
     }
-    auto const [client_id, start_frame, random_seed] =
-        buffer.try_extract<std::uint8_t, std::uint64_t, std::uint64_t>().value();
+    // clang-format off
+    auto const [
+        client_id,
+        start_frame,
+        random_seed,
+        num_players
+    ] = buffer.try_extract<
+            decltype(GameStart::client_id),
+            decltype(GameStart::start_frame),
+            decltype(GameStart::random_seed),
+            decltype(GameStart::num_players)
+        >()
+        .value();
+    // clang-format on
     assert(buffer.size() == 0);
-    return GameStart{ client_id, start_frame, random_seed };
+    return GameStart{ client_id, start_frame, random_seed, num_players };
 }
 
 StateBroadcast::StateBroadcast(std::uint64_t const frame, std::vector<ClientStates> states_per_client)

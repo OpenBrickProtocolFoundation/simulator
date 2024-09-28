@@ -2,6 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 #include <chrono>
+#include <gsl/gsl>
 #include <numeric>
 #include <ranges>
 #include "network/messages.hpp"
@@ -80,7 +81,12 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
     auto i = std::uint8_t{ 0 };
     for (auto& socket : self.m_client_sockets) {
         spdlog::info("assigning id {} to client and sending seed {}", i, self.m_seed);
-        auto const message = GameStart{ i, 180, self.m_seed };
+        auto const message = GameStart{
+            i,
+            180,
+            self.m_seed,
+            gsl::narrow<std::uint8_t>(self.m_client_sockets.size()),
+        };
         socket.send(message.serialize()).wait();
         ++i;
     }
