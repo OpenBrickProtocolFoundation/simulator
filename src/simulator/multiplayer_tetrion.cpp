@@ -26,11 +26,11 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string
     spdlog::info("received game start message");
     auto const& game_start_message = dynamic_cast<GameStart const&>(*message);
 
-    auto const num_observers = game_start_message.num_players - 1;
+    auto const num_observers = static_cast<usize>(game_start_message.num_players - 1);
     auto observers = std::vector<std::unique_ptr<ObserverTetrion>>{};
     observers.reserve(num_observers);
-    auto observer_id = std::uint8_t{ 0 };
-    for (auto i = std::size_t{ 0 }; i < num_observers; ++i) {
+    auto observer_id = u8{ 0 };
+    for (auto i = usize{ 0 }; i < num_observers; ++i) {
         if (observer_id == game_start_message.client_id) {
             ++observer_id;
         }

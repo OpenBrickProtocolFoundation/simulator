@@ -81,7 +81,7 @@ public:
 
     [[nodiscard]] std::string to_string() const {
         auto result = std::string{};
-        for (auto i = std::underlying_type_t<Key>{ 0 }; i < magic_enum::enum_count<Key>(); ++i) {
+        for (auto i = decltype(magic_enum::enum_count<Key>()){ 0 }; i < magic_enum::enum_count<Key>(); ++i) {
             result += fmt::format("{}({})", magic_enum::enum_name(static_cast<Key>(i)), get(static_cast<Key>(i)));
             if (i < magic_enum::enum_count<Key>() - 1) {
                 result += ", ";

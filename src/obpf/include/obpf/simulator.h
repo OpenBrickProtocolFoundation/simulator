@@ -9,6 +9,7 @@ extern "C" {
 #include <common/common.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "input.h"
 #include "rotation.h"
 #include "stats.h"
