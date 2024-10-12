@@ -123,8 +123,8 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                 }
                 last_min_num_frames_simulated = frame;
             }
-            return num_clients_connected;
-        });
+                return num_clients_connected;
+            });
 
         if (num_clients_connected == 0) {
             self.stop();
