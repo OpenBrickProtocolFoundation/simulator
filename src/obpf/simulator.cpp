@@ -3,6 +3,7 @@
 #include <gsl/gsl>
 #include <memory>
 #include <simulator/matrix.hpp>
+#include <simulator/multiplayer_tetrion.hpp>
 #include <simulator/tetrion.hpp>
 #include <simulator/tetromino.hpp>
 
@@ -37,7 +38,7 @@ enum class TetrominoSelection {
 }
 
 ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
-    return new ObpfTetrion{ seed };
+    return new ObpfTetrion{ seed, 0 };
 } catch (std::exception const& e) {
 
     spdlog::error("Failed to create tetrion: {}", e.what());
@@ -45,6 +46,59 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
 } catch (...) {
     spdlog::error("Failed to create tetrion: Unknown error");
     return nullptr;
+}
+
+struct ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint16_t const port) try {
+    auto tetrion = MultiplayerTetrion::create(host, port);
+    if (tetrion == nullptr) {
+        return nullptr;
+    }
+    return tetrion.release();
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to create multiplayer tetrion: {}", e.what());
+    return nullptr;
+} catch (...) {
+    spdlog::error("Failed to create multiplayer tetrion: Unknown error");
+    return nullptr;
+}
+
+ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion) try {
+    auto const observers = tetrion->get_observers();
+    if (observers.empty()) {
+        return ObpfObserverList{
+            .num_observers = 0,
+            .observers = nullptr,
+        };
+    }
+    auto pointers = std::make_unique<ObpfTetrion*[]>(observers.size());
+    std::copy_n(observers.begin(), observers.size(), pointers.get());
+    return ObpfObserverList{
+        .num_observers = observers.size(),
+        .observers = pointers.release(),
+    };
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to get observers: {}", e.what());
+    return ObpfObserverList{
+        .num_observers = 0,
+        .observers = nullptr,
+    };
+} catch (...) {
+    spdlog::error("Failed to get observers: Unknown error");
+    return ObpfObserverList{
+        .num_observers = 0,
+        .observers = nullptr,
+    };
+}
+
+void obpf_destroy_observers(ObpfObserverList const observers) try {
+    [[maybe_unused]] auto const owner = std::unique_ptr<ObpfTetrion*[]>{ observers.observers };
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to destroy observers: {}", e.what());
+} catch (...) {
+    spdlog::error("Failed to destroy observers: Unknown error");
 }
 
 ObpfTetrion* obpf_clone_tetrion(ObpfTetrion const* const tetrion) try {
@@ -170,7 +224,12 @@ void obpf_tetrion_simulate_next_frame(ObpfTetrion* const tetrion, ObpfKeyState c
     spdlog::error("Failed to simulate next frame: Unknown error");
 }
 
-void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) try { delete tetrion; } catch (std::exception const& e) {
+void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) try {
+    if (tetrion == nullptr or tetrion->is_observer()) {
+        return;
+    }
+    delete tetrion;
+} catch (std::exception const& e) {
 
     spdlog::error("Failed to destroy tetrion: {}", e.what());
 } catch (...) {
@@ -303,4 +362,12 @@ void obpf_tetrion_set_action_handler(ObpfTetrion* const tetrion, ObpfActionHandl
     spdlog::error("Failed to set action handler: {}", e.what());
 } catch (...) {
     spdlog::error("Failed to set action handler: Unknown error");
+}
+
+bool obpf_tetrion_is_connected(ObpfTetrion const* tetrion) {
+    return tetrion->is_connected();
+}
+
+uint64_t obpf_tetrion_frames_until_game_start(ObpfTetrion const* tetrion) {
+    return tetrion->frames_until_game_start();
 }

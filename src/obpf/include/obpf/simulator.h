@@ -9,6 +9,7 @@ extern "C" {
 #include <common/common.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "input.h"
 #include "rotation.h"
 #include "stats.h"
@@ -49,13 +50,23 @@ extern "C" {
         bool hold
     );
 
+    struct ObpfObserverList {
+        size_t num_observers;
+        struct ObpfTetrion** observers;
+    };
+
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
+    OBPF_EXPORT struct ObpfTetrion* obpf_create_multiplayer_tetrion(const char* host, uint16_t port);
+    OBPF_EXPORT struct ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT void obpf_destroy_observers(struct ObpfObserverList observers);
     OBPF_EXPORT struct ObpfTetrion* obpf_clone_tetrion(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_set_action_handler(
         struct ObpfTetrion* tetrion,
         ObpfActionHandler handler,
         void* user_data
     );
+    OBPF_EXPORT bool obpf_tetrion_is_connected(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT uint64_t obpf_tetrion_frames_until_game_start(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfStats obpf_tetrion_get_stats(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT bool obpf_tetrion_is_game_over(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(struct ObpfTetrion const* tetrion);
@@ -73,7 +84,6 @@ extern "C" {
         struct ObpfTetrion const* tetrion,
         struct ObpfTetromino* out_tetromino
     );
-    OBPF_EXPORT ObpfTetrominoType obpf_tetrion_matrix_get(const struct ObpfTetrion* tetrion, ObpfVec2 position);
     OBPF_EXPORT ObpfPreviewPieces obpf_tetrion_get_preview_pieces(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfTetrominoType obpf_tetrion_get_hold_piece(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT uint64_t obpf_tetrion_get_next_frame(struct ObpfTetrion const* tetrion);

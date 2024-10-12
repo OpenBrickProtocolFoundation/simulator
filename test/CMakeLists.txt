@@ -11,6 +11,9 @@
  target_link_libraries(test_sandbox PRIVATE obpf_simulator_project_options network)
  target_link_system_libraries(test_sandbox PRIVATE crapper)
 
+ add_executable(sandbox2 sandbox2.cpp)
+ target_link_libraries(sandbox2 PRIVATE obpf_simulator_project_options network simulator)
+
  add_executable(
          simulator_tests
          network_tests.cpp

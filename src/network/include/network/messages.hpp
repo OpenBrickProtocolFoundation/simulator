@@ -111,9 +111,15 @@ struct GameStart final : AbstractMessage {
     std::uint8_t client_id;
     std::uint64_t start_frame;
     std::uint64_t random_seed;
+    std::uint8_t num_players;
 
-    GameStart(std::uint8_t const client_id, std::uint64_t const start_frame, std::uint64_t const random_seed)
-        : client_id{ client_id }, start_frame{ start_frame }, random_seed{ random_seed } {}
+    GameStart(
+        std::uint8_t const client_id,
+        std::uint64_t const start_frame,
+        std::uint64_t const random_seed,
+        std::uint8_t const num_players
+    )
+        : client_id{ client_id }, start_frame{ start_frame }, random_seed{ random_seed }, num_players{ num_players } {}
 
     [[nodiscard]] MessageType type() const override;
     [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
@@ -127,14 +133,19 @@ struct GameStart final : AbstractMessage {
 private:
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size() {
         return static_cast<decltype(MessageHeader::payload_size)>(
-            sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed)
+            sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed) + sizeof(num_players)
         );
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
         auto const& other_game_start = static_cast<decltype(*this)&>(other);
-        return std::tie(client_id, start_frame, random_seed)
-               == std::tie(other_game_start.client_id, other_game_start.start_frame, other_game_start.random_seed);
+        return std::tie(client_id, start_frame, random_seed, num_players)
+               == std::tie(
+                   other_game_start.client_id,
+                   other_game_start.start_frame,
+                   other_game_start.random_seed,
+                   other_game_start.num_players
+               );
     }
 };
 
@@ -178,4 +189,23 @@ private:
         return std::tie(frame, states_per_client)
                == std::tie(other_event_broadcast.frame, other_event_broadcast.states_per_client);
     }
+};
+
+struct ClientDisconnected final : AbstractMessage {
+    u8 client_id;
+
+    explicit ClientDisconnected(u8 const client_id)
+        : client_id{ client_id } {}
+
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static ClientDisconnected deserialize(c2k::MessageBuffer& buffer);
+
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
+        return sizeof(client_id);
+    }
+
+private:
+    [[nodiscard]] bool equals(AbstractMessage const& other) const override;
 };

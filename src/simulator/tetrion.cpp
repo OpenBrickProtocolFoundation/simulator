@@ -30,9 +30,12 @@
 }
 
 void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
-    if (is_game_over()) {
+    if (is_game_over() or m_next_frame < m_start_frame) {
         ++m_next_frame;
         return;
+    }
+    if (m_next_frame == m_start_frame) {
+        spawn_next_tetromino();
     }
 
     if (auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
@@ -103,6 +106,12 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
 
     ++m_next_frame;
 }
+
+[[nodiscard]] std::vector<ObserverTetrion*> ObpfTetrion::get_observers() const {
+    return {};
+}
+
+void ObpfTetrion::on_client_disconnected(u8) {}
 
 [[nodiscard]] LineClearDelay::State ObpfTetrion::line_clear_delay_state() const {
     return m_line_clear_delay.state();

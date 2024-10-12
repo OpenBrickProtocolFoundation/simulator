@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
 #include <gsl/gsl>
 #include <lib2k/types.hpp>
 #include <magic_enum.hpp>
@@ -76,5 +77,16 @@ public:
 
     [[nodiscard]] constexpr bool operator==(KeyState const other) const noexcept {
         return m_bitmask == other.m_bitmask;
+    }
+
+    [[nodiscard]] std::string to_string() const {
+        auto result = std::string{};
+        for (auto i = decltype(magic_enum::enum_count<Key>()){ 0 }; i < magic_enum::enum_count<Key>(); ++i) {
+            result += fmt::format("{}({})", magic_enum::enum_name(static_cast<Key>(i)), get(static_cast<Key>(i)));
+            if (i < magic_enum::enum_count<Key>() - 1) {
+                result += ", ";
+            }
+        }
+        return result;
     }
 };

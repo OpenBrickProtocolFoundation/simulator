@@ -19,7 +19,9 @@
 #include "matrix.hpp"
 #include "tetromino.hpp"
 
-struct ObpfTetrion final {
+struct ObserverTetrion;
+
+struct ObpfTetrion {
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
@@ -32,6 +34,7 @@ private:
     std::optional<TetrominoType> m_hold_piece;
     std::optional<TetrominoType> m_old_hold_piece;
     bool m_is_hold_possible = true;
+    u64 m_start_frame;
     u64 m_next_frame = 0;
     KeyState m_last_key_state;
     std::mt19937_64 m_random;
@@ -60,11 +63,16 @@ public:
         SoftDrop,
     };
 
-    explicit ObpfTetrion(std::uint64_t const seed)
-        : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
+    explicit ObpfTetrion(u64 const seed, u64 const start_frame)
+        : m_start_frame{ start_frame }, m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
-        spawn_next_tetromino();
     }
+
+    ObpfTetrion(ObpfTetrion const& other) = default;
+    ObpfTetrion(ObpfTetrion&& other) noexcept = default;
+    ObpfTetrion& operator=(ObpfTetrion const& other) = default;
+    ObpfTetrion& operator=(ObpfTetrion&& other) noexcept = default;
+    virtual ~ObpfTetrion() = default;
 
     void set_action_handler(ObpfActionHandler const handler, void* const user_data) {
         m_action_handler = handler;
@@ -87,7 +95,9 @@ public:
         return m_ghost_tetromino;
     }
 
-    void simulate_next_frame(KeyState key_state);
+    virtual void simulate_next_frame(KeyState key_state);
+    [[nodiscard]] virtual std::vector<ObserverTetrion*> get_observers() const;
+    virtual void on_client_disconnected(u8 client_id);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
     [[nodiscard]] std::optional<TetrominoType> hold_piece() const;
@@ -108,6 +118,21 @@ public:
 
     [[nodiscard]] bool is_game_over() const {
         return m_is_game_over;
+    }
+
+    [[nodiscard]] virtual bool is_observer() const {
+        return false;
+    }
+
+    [[nodiscard]] virtual bool is_connected() const {
+        return true;
+    }
+
+    [[nodiscard]] u64 frames_until_game_start() const {
+        if (m_next_frame >= m_start_frame) {
+            return 0;
+        }
+        return m_start_frame - m_next_frame;
     }
 
 private:

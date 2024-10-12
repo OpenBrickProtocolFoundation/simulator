@@ -10,7 +10,7 @@ add_library(network STATIC
         include/network/lobby.hpp
 )
 
-target_link_libraries(network PUBLIC simulator)
+target_link_libraries(network PUBLIC simulator obpf_simulator_project_options)
 target_link_system_libraries(network
         PUBLIC
         c2k_sockets
