@@ -104,6 +104,10 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     ++m_next_frame;
 }
 
+[[nodiscard]] std::vector<ObserverTetrion*> ObpfTetrion::get_observers() const {
+    return {};
+}
+
 [[nodiscard]] LineClearDelay::State ObpfTetrion::line_clear_delay_state() const {
     return m_line_clear_delay.state();
 }

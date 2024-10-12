@@ -48,7 +48,7 @@ public:
           m_observers{ std::move(observers) } {}
 
     void simulate_next_frame(KeyState key_state) override;
-    [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const;
+    [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const override;
 
 private:
     void send_heartbeat_message();

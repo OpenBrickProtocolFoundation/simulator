@@ -20,6 +20,10 @@ public:
         return m_client_id;
     }
 
+    [[nodiscard]] bool is_observer() const override {
+        return true;
+    }
+
 private:
     void process_key_state(KeyState key_state);
 };

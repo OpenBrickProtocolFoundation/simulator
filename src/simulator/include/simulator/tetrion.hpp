@@ -19,6 +19,8 @@
 #include "matrix.hpp"
 #include "tetromino.hpp"
 
+struct ObserverTetrion;
+
 struct ObpfTetrion {
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
@@ -94,6 +96,7 @@ public:
     }
 
     virtual void simulate_next_frame(KeyState key_state);
+    [[nodiscard]] virtual std::vector<ObserverTetrion*> get_observers() const;
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
     [[nodiscard]] std::optional<TetrominoType> hold_piece() const;
@@ -114,6 +117,10 @@ public:
 
     [[nodiscard]] bool is_game_over() const {
         return m_is_game_over;
+    }
+
+    [[nodiscard]] virtual bool is_observer() const {
+        return false;
     }
 
 private:
