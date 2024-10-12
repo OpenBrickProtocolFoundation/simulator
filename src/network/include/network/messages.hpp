@@ -194,7 +194,8 @@ private:
 struct ClientDisconnected final : AbstractMessage {
     u8 client_id;
 
-    explicit ClientDisconnected(u8 const client_id) : client_id{ client_id } {}
+    explicit ClientDisconnected(u8 const client_id)
+        : client_id{ client_id } {}
 
     [[nodiscard]] MessageType type() const override;
     [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
