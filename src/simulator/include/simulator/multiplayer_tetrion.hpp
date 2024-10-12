@@ -14,8 +14,7 @@ using NullableUniquePointer = std::unique_ptr<T>;
 struct MultiplayerTetrion final : ObpfTetrion {
 private:
     c2k::ClientSocket m_socket;
-    std::uint8_t m_client_id;
-    std::uint64_t m_start_frame;
+    u8 m_client_id;
     c2k::StaticVector<KeyState, heartbeat_interval> m_key_state_buffer;
     std::jthread m_receiving_thread;
     std::vector<std::unique_ptr<ObserverTetrion>> m_observers;
@@ -34,16 +33,15 @@ public:
 
     explicit MultiplayerTetrion(
         c2k::ClientSocket socket,
-        std::uint8_t const client_id,
-        std::uint64_t const start_frame,
-        std::uint64_t const seed,
+        u8 const client_id,
+        u64 const start_frame,
+        u64 const seed,
         std::vector<std::unique_ptr<ObserverTetrion>> observers,
         Key
     )
-        : ObpfTetrion{ seed },
+        : ObpfTetrion{ seed, start_frame },
           m_socket{ std::move(socket) },
           m_client_id{ client_id },
-          m_start_frame{ start_frame },
           m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_broadcast_queue) },
           m_observers{ std::move(observers) } {}
 

@@ -83,7 +83,7 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
         spdlog::info("assigning id {} to client and sending seed {}", i, self.m_seed);
         auto const message = GameStart{
             i,
-            180,
+            start_frame,
             self.m_seed,
             gsl::narrow<std::uint8_t>(self.m_client_sockets.size()),
         };

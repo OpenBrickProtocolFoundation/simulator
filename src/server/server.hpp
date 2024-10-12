@@ -8,12 +8,12 @@
 #include <vector>
 
 struct ClientInfo final {
-    std::uint8_t id;
+    u8 id;
     ObpfTetrion tetrion;
     std::vector<KeyState> key_states;
 
-    explicit ClientInfo(std::uint8_t const id, std::uint64_t const seed)
-        : id{ id }, tetrion{ seed } {}
+    explicit ClientInfo(u8 const id, u64 const seed, u64 const start_frame)
+        : id{ id }, tetrion{ seed, start_frame } {}
 };
 
 class Server final {
@@ -28,6 +28,8 @@ private:
     std::uint8_t m_next_client_id = 0;
     std::atomic_flag m_should_stop;
     c2k::Random::Seed m_seed;
+
+    static constexpr auto start_frame = u64{ 180 };
 
 public:
     explicit Server(std::uint16_t const lobby_port)
@@ -104,7 +106,7 @@ private:
 
             assert(client_infos.size() == index);
             auto const client_id = m_next_client_id++;
-            client_infos.emplace_back(client_id, m_seed);
+            client_infos.emplace_back(client_id, m_seed, start_frame);
 
             assert(m_client_threads.size() == index);
             m_client_threads.emplace_back(process_client, std::ref(*this), index);

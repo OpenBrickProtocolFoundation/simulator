@@ -34,9 +34,12 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string
         if (observer_id == game_start_message.client_id) {
             ++observer_id;
         }
-        observers.push_back(
-            std::make_unique<ObserverTetrion>(game_start_message.random_seed, observer_id, ObserverTetrion::Key{})
-        );
+        observers.push_back(std::make_unique<ObserverTetrion>(
+            game_start_message.random_seed,
+            game_start_message.start_frame,
+            observer_id,
+            ObserverTetrion::Key{}
+        ));
         ++observer_id;
     }
 

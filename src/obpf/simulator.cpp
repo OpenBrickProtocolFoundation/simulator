@@ -38,7 +38,7 @@ enum class TetrominoSelection {
 }
 
 ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
-    return new ObpfTetrion{ seed };
+    return new ObpfTetrion{ seed, 0 };
 } catch (std::exception const& e) {
 
     spdlog::error("Failed to create tetrion: {}", e.what());

@@ -8,15 +8,15 @@ struct ObserverTetrion final : ObpfTetrion {
 private:
     struct Key {};
 
-    std::uint8_t m_client_id;
+    u8 m_client_id;
 
 public:
-    ObserverTetrion(std::uint64_t const seed, std::uint8_t const m_client_id, Key)
-        : ObpfTetrion{ seed }, m_client_id{ m_client_id } {}
+    ObserverTetrion(u64 const seed, u64 const start_frame, u8 const m_client_id, Key)
+        : ObpfTetrion{ seed, start_frame }, m_client_id{ m_client_id } {}
 
     void simulate_next_frame(KeyState) override {}
 
-    [[nodiscard]] std::uint8_t client_id() const {
+    [[nodiscard]] u8 client_id() const {
         return m_client_id;
     }
 

@@ -34,6 +34,7 @@ private:
     std::optional<TetrominoType> m_hold_piece;
     std::optional<TetrominoType> m_old_hold_piece;
     bool m_is_hold_possible = true;
+    u64 m_start_frame;
     u64 m_next_frame = 0;
     KeyState m_last_key_state;
     std::mt19937_64 m_random;
@@ -62,8 +63,8 @@ public:
         SoftDrop,
     };
 
-    explicit ObpfTetrion(std::uint64_t const seed)
-        : m_random{ seed }, m_bags{ create_two_bags(m_random) } {
+    explicit ObpfTetrion(u64 const seed, u64 const start_frame)
+        : m_random{ seed }, m_start_frame{ start_frame }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
         spawn_next_tetromino();
     }
