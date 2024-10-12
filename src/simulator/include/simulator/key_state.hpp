@@ -1,5 +1,6 @@
 #pragma once
 
+#include <spdlog/fmt/fmt.h>
 #include <gsl/gsl>
 #include <lib2k/types.hpp>
 #include <magic_enum.hpp>
@@ -7,7 +8,6 @@
 #include <simulator/input.hpp>
 #include <type_traits>
 #include <utility>
-#include <spdlog/fmt/fmt.h>
 
 class KeyState final {
 private:
@@ -82,11 +82,7 @@ public:
     [[nodiscard]] std::string to_string() const {
         auto result = std::string{};
         for (auto i = std::underlying_type_t<Key>{ 0 }; i < magic_enum::enum_count<Key>(); ++i) {
-            result += fmt::format(
-                "{}({})",
-                magic_enum::enum_name(static_cast<Key>(i)),
-                get(static_cast<Key>(i))
-            );
+            result += fmt::format("{}({})", magic_enum::enum_name(static_cast<Key>(i)), get(static_cast<Key>(i)));
             if (i < magic_enum::enum_count<Key>() - 1) {
                 result += ", ";
             }
