@@ -37,13 +37,15 @@ public:
         std::uint8_t const client_id,
         std::uint64_t const start_frame,
         std::uint64_t const seed,
+        std::vector<std::unique_ptr<ObserverTetrion>> observers,
         Key
     )
         : ObpfTetrion{ seed },
           m_socket{ std::move(socket) },
           m_client_id{ client_id },
           m_start_frame{ start_frame },
-          m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_broadcast_queue) } {}
+          m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_broadcast_queue) },
+          m_observers{ std::move(observers) } {}
 
     void simulate_next_frame(KeyState key_state) override;
     [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const;

@@ -45,6 +45,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string
         game_start_message.client_id,
         game_start_message.start_frame,
         game_start_message.random_seed,
+        std::move(observers),
         Key{}
     );
 }
