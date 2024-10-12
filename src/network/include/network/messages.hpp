@@ -190,3 +190,21 @@ private:
                == std::tie(other_event_broadcast.frame, other_event_broadcast.states_per_client);
     }
 };
+
+struct ClientDisconnected final : AbstractMessage {
+    u8 client_id;
+
+    explicit ClientDisconnected(u8 const client_id) : client_id{ client_id } {}
+
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static ClientDisconnected deserialize(c2k::MessageBuffer& buffer);
+
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
+        return sizeof(client_id);
+    }
+
+private:
+    [[nodiscard]] bool equals(AbstractMessage const& other) const override;
+};

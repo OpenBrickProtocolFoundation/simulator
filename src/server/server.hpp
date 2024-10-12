@@ -112,6 +112,8 @@ private:
         });
     }
 
+    void broadcast_client_disconnected_message(u8 client_id);
+
     static void process_client(std::stop_token const& stop_token, Server& self, std::size_t index);
 
     static void keep_broadcasting(std::stop_token const& stop_token, Server& self);

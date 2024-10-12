@@ -23,6 +23,8 @@ target_compile_definitions(obpf PRIVATE "simulator_EXPORTS")
 generate_export_header(obpf)
 
 target_link_libraries(obpf
+        PUBLIC
+        obpf_simulator_project_options
         PRIVATE
         simulator
         network

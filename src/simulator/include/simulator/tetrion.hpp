@@ -97,6 +97,7 @@ public:
 
     virtual void simulate_next_frame(KeyState key_state);
     [[nodiscard]] virtual std::vector<ObserverTetrion*> get_observers() const;
+    virtual void on_client_disconnected(u8 client_id);
     [[nodiscard]] LineClearDelay::State line_clear_delay_state() const;
     [[nodiscard]] std::array<TetrominoType, 6> get_preview_tetrominos() const;
     [[nodiscard]] std::optional<TetrominoType> hold_piece() const;
@@ -121,6 +122,10 @@ public:
 
     [[nodiscard]] virtual bool is_observer() const {
         return false;
+    }
+
+    [[nodiscard]] virtual bool is_connected() const {
+        return true;
     }
 
     [[nodiscard]] u64 frames_until_game_start() const {

@@ -7,6 +7,16 @@
 #include <ranges>
 #include "network/messages.hpp"
 
+void Server::broadcast_client_disconnected_message(u8 const client_id) {
+    auto const message = ClientDisconnected{ client_id };
+    for (auto& socket : m_client_sockets) {
+        if (socket.is_connected()) {
+            spdlog::info("broadcasting disconnected client to socket");
+            std::ignore = socket.send(message.serialize());
+        }
+    }
+}
+
 void Server::process_client(std::stop_token const& stop_token, Server& self, std::size_t const index) {
     using namespace std::chrono_literals;
     auto& socket = self.m_client_sockets.at(index);
@@ -41,10 +51,12 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
         }
     }
     spdlog::info("client {}:{} disconnected", socket.remote_address().address, socket.remote_address().port);
-    self.m_client_infos.apply([index](std::vector<ClientInfo>& client_infos) {
+    auto const client_id = self.m_client_infos.apply([index](std::vector<ClientInfo>& client_infos) {
         auto& client_info = client_infos.at(index);
         client_info.is_connected = false;
+        return client_info.id;
     });
+    self.broadcast_client_disconnected_message(client_id);
 }
 
 // clang-format off
@@ -104,29 +116,51 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                     std::ranges::count_if(client_infos, [](ClientInfo const& client_info) {
                         return client_info.is_connected;
                     });
-                auto const min_num_frames_simulated = std::min_element(
-                client_infos.cbegin(),
-                client_infos.cend(),
-                [](ClientInfo const& lhs, ClientInfo const& rhs) {
-                    return lhs.tetrion.next_frame() < rhs.tetrion.next_frame();
+
+                if (num_clients_connected == 0) {
+                    return num_clients_connected;
                 }
-            );
-            auto const frame = min_num_frames_simulated->tetrion.next_frame();
+
+                // first we need to find the minimum number of frames simulated by any client that is connected
+                auto const min_num_frames_simulated = std::ranges::min(
+                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected; })
+                    | std::views::transform([](auto const& client_info) { return client_info.tetrion.next_frame(); })
+                );
+
+                // to not block the broadcasting, we will create empty key states for all clients that are not connected
+                for (auto& client_info : client_infos) {
+                    if (not client_info.is_connected) {
+                        while (client_info.tetrion.next_frame() < min_num_frames_simulated) {
+                            static constexpr auto key_state = KeyState{};
+                            client_info.key_states.push_back(key_state);
+                            // we simulate the frame here, because we won't receive any key states from the client
+                            client_info.tetrion.simulate_next_frame(key_state);
+                        }
+                    }
+                }
+                auto const frame = min_num_frames_simulated;
                 if (frame == 0) {
                     return num_clients_connected;
-            }
-
-            if (not last_min_num_frames_simulated.has_value() or frame != last_min_num_frames_simulated.value()) {
-                auto const broadcast_message = create_broadcast_message(client_infos, frame - 1);
-                for (auto& socket : self.m_client_sockets) {
-                    std::ignore = socket.send(broadcast_message);
                 }
-                last_min_num_frames_simulated = frame;
-            }
+
+                if (not last_min_num_frames_simulated.has_value() or frame != last_min_num_frames_simulated.value()) {
+                    auto const broadcast_message = create_broadcast_message(client_infos, frame - 1);
+                    for (auto& socket : self.m_client_sockets) {
+                        if (socket.is_connected()) {
+                            spdlog::info(
+                                "sending broadcast message to socket with descriptor {}",
+                                socket.os_socket_handle().value()
+                            );
+                            std::ignore = socket.send(broadcast_message);
+                        }
+                    }
+                    last_min_num_frames_simulated = frame;
+                }
                 return num_clients_connected;
             });
 
         if (num_clients_connected == 0) {
+            spdlog::info("stopping server");
             self.stop();
             break;
         }

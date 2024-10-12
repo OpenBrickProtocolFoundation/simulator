@@ -9,6 +9,7 @@ private:
     struct Key {};
 
     u8 m_client_id;
+    bool m_is_connected = true;
 
 public:
     ObserverTetrion(u64 const seed, u64 const start_frame, u8 const m_client_id, Key)
@@ -22,6 +23,10 @@ public:
 
     [[nodiscard]] bool is_observer() const override {
         return true;
+    }
+
+    [[nodiscard]] bool is_connected() const override {
+        return m_is_connected;
     }
 
 private:

@@ -18,7 +18,7 @@ private:
     c2k::StaticVector<KeyState, heartbeat_interval> m_key_state_buffer;
     std::jthread m_receiving_thread;
     std::vector<std::unique_ptr<ObserverTetrion>> m_observers;
-    c2k::Synchronized<std::deque<StateBroadcast>> m_broadcast_queue{ {} };
+    c2k::Synchronized<std::deque<std::unique_ptr<AbstractMessage>>> m_message_queue{ {} };
 
     struct Key {};
 
@@ -42,11 +42,12 @@ public:
         : ObpfTetrion{ seed, start_frame },
           m_socket{ std::move(socket) },
           m_client_id{ client_id },
-          m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_broadcast_queue) },
+          m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_message_queue) },
           m_observers{ std::move(observers) } {}
 
     void simulate_next_frame(KeyState key_state) override;
     [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const override;
+    void on_client_disconnected(u8 client_id) override;
 
 private:
     void send_heartbeat_message();
@@ -55,6 +56,6 @@ private:
     static void keep_receiving(
         std::stop_token const& stop_token,
         c2k::ClientSocket& socket,
-        c2k::Synchronized<std::deque<StateBroadcast>>& queue
+        c2k::Synchronized<std::deque<std::unique_ptr<AbstractMessage>>>& queue
     );
 };

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "message_types.hpp"
 #include <cstdint>
 #include <sockets/sockets.hpp>
+#include "message_types.hpp"
 
 using MessageSize = std::uint16_t;
 
@@ -20,7 +20,7 @@ struct MessageHeader {
             throw std::invalid_argument{ "not enough data to extract message header" };
         }
         auto const [type, payload_size] = tuple.value();
-        auto const message_type = convert_to_message_type(type);
+        auto const message_type = magic_enum::enum_cast<MessageType>(type);
         if (not message_type.has_value()) {
             throw std::invalid_argument{ std::format("{} is not a valid message type", type) };
         }

@@ -25,13 +25,15 @@ static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) 
     auto const message_max_payload_size = [message_type] {
         switch (message_type) {
             case MessageType::Heartbeat:
-                return static_cast<std::uint16_t>(Heartbeat::max_payload_size());
+                return Heartbeat::max_payload_size();
             case MessageType::GridState:
-                return static_cast<std::uint16_t>(GridState::max_payload_size());
+                return GridState::max_payload_size();
             case MessageType::GameStart:
-                return static_cast<std::uint16_t>(GameStart::max_payload_size());
+                return GameStart::max_payload_size();
             case MessageType::StateBroadcast:
-                return static_cast<std::uint16_t>(StateBroadcast::max_payload_size());
+                return StateBroadcast::max_payload_size();
+            case MessageType::ClientDisconnected:
+                return ClientDisconnected::max_payload_size();
                 // todo: add case for custom messages
         }
         throw MessageDeserializationError{ std::format("{} is an unknown message type", static_cast<int>(message_type)) };
@@ -75,6 +77,8 @@ static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) 
                 return std::make_unique<GameStart>(GameStart::deserialize(buffer));
             case MessageType::StateBroadcast:
                 return std::make_unique<StateBroadcast>(StateBroadcast::deserialize(buffer));
+            case MessageType::ClientDisconnected:
+                return std::make_unique<ClientDisconnected>(ClientDisconnected::deserialize(buffer));
         }
     } catch (MessageInstantiationError const& exception) {
         throw MessageDeserializationError{ std::format("failed to deserialize message: {}", exception.what()) };
@@ -286,4 +290,34 @@ StateBroadcast::StateBroadcast(std::uint64_t const frame, std::vector<ClientStat
         throw MessageDeserializationError{ "excess bytes while deserializing EventBroadcast message" };
     }
     return StateBroadcast{ frame, std::move(states_per_client) };
+}
+
+[[nodiscard]] MessageType ClientDisconnected::type() const {
+    return MessageType::ClientDisconnected;
+}
+
+decltype(MessageHeader::payload_size) ClientDisconnected::payload_size() const {
+    return max_payload_size();
+}
+
+[[nodiscard]] c2k::MessageBuffer ClientDisconnected::serialize() const {
+    auto buffer = c2k::MessageBuffer{};
+    buffer << static_cast<u8>(type()) << payload_size() << client_id;
+    return buffer;
+}
+
+[[nodiscard]] ClientDisconnected ClientDisconnected::deserialize(c2k::MessageBuffer& buffer) {
+    if (buffer.size() < max_payload_size()) {
+        throw MessageDeserializationError{ "too few bytes to deserialize ClientDisconnected message" };
+    }
+    auto const client_id = buffer.try_extract<u8>().value();
+    if (buffer.size() > 0) {
+        throw MessageDeserializationError{ "excess bytes while deserializing ClientDisconnected message" };
+    }
+    return ClientDisconnected{ client_id };
+}
+
+bool ClientDisconnected::equals(AbstractMessage const& other) const {
+    auto const other_client_disconnected = dynamic_cast<ClientDisconnected const*>(&other);
+    return other_client_disconnected != nullptr and client_id == other_client_disconnected->client_id;
 }

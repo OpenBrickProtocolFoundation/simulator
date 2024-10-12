@@ -111,6 +111,8 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     return {};
 }
 
+void ObpfTetrion::on_client_disconnected(u8) {}
+
 [[nodiscard]] LineClearDelay::State ObpfTetrion::line_clear_delay_state() const {
     return m_line_clear_delay.state();
 }

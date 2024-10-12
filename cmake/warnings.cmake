@@ -23,6 +23,7 @@ function(obpf_simulator_set_warnings target_name warnings_as_errors)
             /w14905 # wide string literal cast to 'LPSTR'
             /w14906 # string literal cast to 'LPWSTR'
             /w14928 # illegal copy-initialization; more than one user-defined conversion has been implicitly applied
+            /w14062 # enumerator 'identifier' in a switch of enum 'enumeration' is not handled
             /permissive- # standards conformance mode for MSVC compiler.
     )
 

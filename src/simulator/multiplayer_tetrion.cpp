@@ -61,11 +61,21 @@ void MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
     }
     ObpfTetrion::simulate_next_frame(key_state);
 
-    m_broadcast_queue.apply([this](std::deque<StateBroadcast>& queue) {
+    m_message_queue.apply([this](std::deque<std::unique_ptr<AbstractMessage>>& queue) {
         while (not queue.empty()) {
             auto const message = std::move(queue.front());
             queue.pop_front();
-            process_state_broadcast_message(message);
+            switch (message->type()) {
+                case MessageType::StateBroadcast:
+                    process_state_broadcast_message(dynamic_cast<StateBroadcast const&>(*message));
+                    break;
+                case MessageType::ClientDisconnected:
+                    on_client_disconnected(dynamic_cast<ClientDisconnected const&>(*message).client_id);
+                    break;
+                default:
+                    spdlog::error("cannot handle message of type {}", magic_enum::enum_name(message->type()));
+                    break;
+            }
         }
     });
 }
@@ -77,6 +87,17 @@ void MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
         result.push_back(observer.get());
     }
     return result;
+}
+
+void MultiplayerTetrion::on_client_disconnected(u8 const client_id) {
+    auto const find_iterator = std::ranges::find_if(m_observers, [client_id](auto const& observer) -> bool {
+        return observer->client_id() == client_id;
+    });
+    if (find_iterator == m_observers.end()) {
+        spdlog::error("client {} disconnected, but no observer found", client_id);
+        return;
+    }
+    (*find_iterator)->m_is_connected = false;
 }
 
 void MultiplayerTetrion::send_heartbeat_message() {
@@ -110,24 +131,23 @@ void MultiplayerTetrion::process_state_broadcast_message(StateBroadcast const& m
 void MultiplayerTetrion::keep_receiving(
     std::stop_token const& stop_token,
     c2k::ClientSocket& socket,
-    c2k::Synchronized<std::deque<StateBroadcast>>& queue
+    c2k::Synchronized<std::deque<std::unique_ptr<AbstractMessage>>>& queue
 ) {
     while (not stop_token.stop_requested()) {
         try {
-            auto const message = AbstractMessage::from_socket(socket);
+            auto message = AbstractMessage::from_socket(socket);
             switch (message->type()) {
-                case MessageType::StateBroadcast: {
-                    auto& state_broadcast_message = dynamic_cast<StateBroadcast&>(*message);
-                    spdlog::info(
-                        "received state broadcast message for frame {} ({} clients)",
-                        state_broadcast_message.frame,
-                        state_broadcast_message.states_per_client.size()
+                case MessageType::StateBroadcast:
+                case MessageType::ClientDisconnected:
+                    spdlog::info("queueing message of type {}", magic_enum::enum_name(message->type()));
+                    // clang-format off
+                    queue.apply(
+                        [message = std::move(message)](std::deque<std::unique_ptr<AbstractMessage>>& queue) mutable {
+                            queue.push_back(std::move(message));
+                        }
                     );
-                    queue.apply([&state_broadcast_message](std::deque<StateBroadcast>& queue) {
-                        queue.push_back(state_broadcast_message);
-                    });
+                    // clang-format on
                     break;
-                }
                 default:
                     spdlog::warn("received message of unexpected type: {}", magic_enum::enum_name(message->type()));
                     break;
