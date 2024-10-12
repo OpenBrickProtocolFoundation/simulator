@@ -6,7 +6,8 @@
 #include "network/constants.hpp"
 #include "network/message_header.hpp"
 
-static constexpr auto header_size = sizeof(std::underlying_type_t<MessageType>) + sizeof(MessageHeader::payload_size);
+[[maybe_unused]] static constexpr auto header_size =
+    sizeof(std::underlying_type_t<MessageType>) + sizeof(MessageHeader::payload_size);
 
 // clang-format off
 [[nodiscard]] std::unique_ptr<AbstractMessage> AbstractMessage::from_socket(
