@@ -123,6 +123,13 @@ public:
         return false;
     }
 
+    [[nodiscard]] u64 frames_until_game_start() const {
+        if (m_next_frame >= m_start_frame) {
+            return 0;
+        }
+        return m_start_frame - m_next_frame;
+    }
+
 private:
     void freeze_and_destroy_active_tetromino();
     [[nodiscard]] bool is_tetromino_completely_invisible(Tetromino const& tetromino) const;

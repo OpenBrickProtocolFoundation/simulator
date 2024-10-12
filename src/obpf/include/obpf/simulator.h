@@ -64,6 +64,7 @@ extern "C" {
         ObpfActionHandler handler,
         void* user_data
     );
+    OBPF_EXPORT uint64_t obpf_tetrion_frames_until_game_start(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfStats obpf_tetrion_get_stats(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT bool obpf_tetrion_is_game_over(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfLineClearDelayState obpf_tetrion_get_line_clear_delay_state(struct ObpfTetrion const* tetrion);

@@ -363,3 +363,7 @@ void obpf_tetrion_set_action_handler(ObpfTetrion* const tetrion, ObpfActionHandl
 } catch (...) {
     spdlog::error("Failed to set action handler: Unknown error");
 }
+
+uint64_t obpf_tetrion_frames_until_game_start(ObpfTetrion const* tetrion) {
+    return tetrion->frames_until_game_start();
+}
