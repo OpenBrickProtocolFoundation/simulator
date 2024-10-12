@@ -63,6 +63,44 @@ struct ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint
     return nullptr;
 }
 
+ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion) try {
+    auto const observers = tetrion->get_observers();
+    if (observers.empty()) {
+        return ObpfObserverList{
+            .num_observers = 0,
+            .observers = nullptr,
+        };
+    }
+    auto pointers = std::make_unique<ObpfTetrion*[]>(observers.size());
+    std::copy_n(observers.begin(), observers.size(), pointers.get());
+    return ObpfObserverList{
+        .num_observers = observers.size(),
+        .observers = pointers.release(),
+    };
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to get observers: {}", e.what());
+    return ObpfObserverList{
+        .num_observers = 0,
+        .observers = nullptr,
+    };
+} catch (...) {
+    spdlog::error("Failed to get observers: Unknown error");
+    return ObpfObserverList{
+        .num_observers = 0,
+        .observers = nullptr,
+    };
+}
+
+void obpf_destroy_observers(ObpfObserverList const observers) try {
+    [[maybe_unused]] auto const owner = std::unique_ptr<ObpfTetrion*[]>{ observers.observers };
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to destroy observers: {}", e.what());
+} catch (...) {
+    spdlog::error("Failed to destroy observers: Unknown error");
+}
+
 ObpfTetrion* obpf_clone_tetrion(ObpfTetrion const* const tetrion) try {
     auto result = new ObpfTetrion{ *tetrion };
     result->set_action_handler(nullptr, nullptr);
@@ -186,7 +224,12 @@ void obpf_tetrion_simulate_next_frame(ObpfTetrion* const tetrion, ObpfKeyState c
     spdlog::error("Failed to simulate next frame: Unknown error");
 }
 
-void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) try { delete tetrion; } catch (std::exception const& e) {
+void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) try {
+    if (tetrion == nullptr or tetrion->is_observer()) {
+        return;
+    }
+    delete tetrion;
+} catch (std::exception const& e) {
 
     spdlog::error("Failed to destroy tetrion: {}", e.what());
 } catch (...) {

@@ -49,8 +49,15 @@ extern "C" {
         bool hold
     );
 
+    struct ObpfObserverList {
+        size_t num_observers;
+        struct ObpfTetrion** observers;
+    };
+
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
     OBPF_EXPORT struct ObpfTetrion* obpf_create_multiplayer_tetrion(const char* host, uint16_t port);
+    OBPF_EXPORT struct ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT void obpf_destroy_observers(struct ObpfObserverList observers);
     OBPF_EXPORT struct ObpfTetrion* obpf_clone_tetrion(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_set_action_handler(
         struct ObpfTetrion* tetrion,
