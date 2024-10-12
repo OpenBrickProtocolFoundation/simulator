@@ -33,6 +33,7 @@ int main(int const argc, char const* const* const argv) {
             spdlog::info("lobby port = {}", lobby_port.value());
             spdlog::info("starting gameserver");
             auto const server = Server{ lobby_port.value() };
+            break;
         }
         case 3: {
             auto const game_server_port = parse_integer<std::uint16_t>(argv[1]);
@@ -49,6 +50,7 @@ int main(int const argc, char const* const* const argv) {
             spdlog::info("number of players = {}", num_players.value());
             spdlog::info("starting game server");
             auto const server = Server{ game_server_port.value(), num_players.value() };
+            break;
         }
         default:
             std::cout << std::format("Usage: {} [<lobby-port>|<gameserver_port> <num_players>]\n", argv[0]);

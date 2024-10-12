@@ -7,7 +7,7 @@
 #include <ranges>
 #include "network/messages.hpp"
 
-void Server::process_client(std::stop_token const& stop_token, Server& self, std::size_t index) {
+void Server::process_client(std::stop_token const& stop_token, Server& self, std::size_t const index) {
     using namespace std::chrono_literals;
     auto& socket = self.m_client_sockets.at(index);
 
@@ -41,6 +41,10 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
         }
     }
     spdlog::info("client {}:{} disconnected", socket.remote_address().address, socket.remote_address().port);
+    self.m_client_infos.apply([index](std::vector<ClientInfo>& client_infos) {
+        auto& client_info = client_infos.at(index);
+        client_info.is_connected = false;
+    });
 }
 
 // clang-format off
@@ -94,8 +98,13 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
     auto last_min_num_frames_simulated = std::optional<std::uint64_t>{ std::nullopt };
 
     while (not stop_token.stop_requested()) {
-        self.m_client_infos.apply([&self, &last_min_num_frames_simulated](std::vector<ClientInfo>& client_infos) {
-            auto const min_num_frames_simulated = std::min_element(
+        auto const num_clients_connected =
+            self.m_client_infos.apply([&self, &last_min_num_frames_simulated](std::vector<ClientInfo>& client_infos) {
+                auto const num_clients_connected =
+                    std::ranges::count_if(client_infos, [](ClientInfo const& client_info) {
+                        return client_info.is_connected;
+                    });
+                auto const min_num_frames_simulated = std::min_element(
                 client_infos.cbegin(),
                 client_infos.cend(),
                 [](ClientInfo const& lhs, ClientInfo const& rhs) {
@@ -103,8 +112,8 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                 }
             );
             auto const frame = min_num_frames_simulated->tetrion.next_frame();
-            if (frame == 0) {
-                return;
+                if (frame == 0) {
+                    return num_clients_connected;
             }
 
             if (not last_min_num_frames_simulated.has_value() or frame != last_min_num_frames_simulated.value()) {
@@ -114,7 +123,13 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                 }
                 last_min_num_frames_simulated = frame;
             }
+            return num_clients_connected;
         });
+
+        if (num_clients_connected == 0) {
+            self.stop();
+            break;
+        }
 
         // todo: replace sleep with condition variable
         std::this_thread::sleep_for(100ms);

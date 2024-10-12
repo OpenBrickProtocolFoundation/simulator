@@ -11,6 +11,7 @@ struct ClientInfo final {
     u8 id;
     ObpfTetrion tetrion;
     std::vector<KeyState> key_states;
+    bool is_connected = true;
 
     explicit ClientInfo(u8 const id, u64 const seed, u64 const start_frame)
         : id{ id }, tetrion{ seed, start_frame } {}
@@ -76,8 +77,6 @@ public:
         });
         m_client_threads.reserve(m_expected_player_count);
     }
-
-    static Server start_on_port(std::uint16_t gameserver_port) {}
 
     Server(Server const&) = delete;
     Server(Server&&) noexcept = delete;
