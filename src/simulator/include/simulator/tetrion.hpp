@@ -66,7 +66,6 @@ public:
     explicit ObpfTetrion(u64 const seed, u64 const start_frame)
         : m_start_frame{ start_frame }, m_random{ seed }, m_bags{ create_two_bags(m_random) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
-        spawn_next_tetromino();
     }
 
     ObpfTetrion(ObpfTetrion const& other) = default;
