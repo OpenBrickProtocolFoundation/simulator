@@ -21,6 +21,8 @@ add_library(simulator STATIC
         multiplayer_tetrion.cpp
         include/simulator/observer_tetrion.hpp
         observer_tetrion.cpp
+        include/simulator/garbage.hpp
+        garbage.cpp
 )
 
 target_include_directories(simulator
@@ -41,8 +43,8 @@ target_link_system_libraries(simulator
         PUBLIC
         Microsoft.GSL::GSL
         lib2k
+        tl::optional
         PRIVATE
         spdlog::spdlog
-        tl::optional
         magic_enum::magic_enum
 )

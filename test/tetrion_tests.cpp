@@ -19,6 +19,7 @@ static constexpr u64 seed_for_tetromino_type(TetrominoType const type) {
             return 22;
         case Z:
             return 4;
+        case Garbage:
         case Empty:
             throw std::runtime_error{ "Empty type cannot be spawned" };
     }
@@ -44,6 +45,8 @@ static constexpr char to_char(TetrominoType const type) {
             return 'T';
         case Z:
             return 'Z';
+        case Garbage:
+            return 'G';
     }
     throw std::runtime_error{ "Invalid TetrominoType" };
 }
@@ -90,9 +93,9 @@ TEST(TetrionTests, AllClear) {
     }
 
     while (not tetrion.active_tetromino().has_value()) {
-        tetrion.simulate_next_frame(KeyState{});
+        std::ignore = tetrion.simulate_next_frame(KeyState{});
     }
-    tetrion.simulate_next_frame(KeyState{
+    std::ignore = tetrion.simulate_next_frame(KeyState{
         false,
         false,
         false,
@@ -103,7 +106,7 @@ TEST(TetrionTests, AllClear) {
     });
 
     while (tetrion.active_tetromino().has_value()) {
-        tetrion.simulate_next_frame(KeyState{
+        std::ignore = tetrion.simulate_next_frame(KeyState{
             false,
             true,
             false,
@@ -115,7 +118,7 @@ TEST(TetrionTests, AllClear) {
     }
 
     while (not tetrion.active_tetromino().has_value()) {
-        tetrion.simulate_next_frame(KeyState{});
+        std::ignore = tetrion.simulate_next_frame(KeyState{});
     }
 
     EXPECT_EQ(called_count, 1);

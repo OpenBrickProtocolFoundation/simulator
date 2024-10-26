@@ -29,23 +29,62 @@
     return result;
 }
 
-void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
+void ObpfTetrion::apply_expired_garbage() {
+    static constexpr auto is_expired = [](GarbageSendEvent const& garbage, u64 const current_frame) {
+        return current_frame >= garbage.frame + garbage_delay_frames;
+    };
+
+    while (not m_garbage_receive_queue.empty()) {
+        auto const garbage = m_garbage_receive_queue.front();
+        if (not is_expired(garbage, m_next_frame)) {
+            break;
+        }
+        m_garbage_receive_queue.pop_front();
+        auto const gap_position = static_cast<decltype(Vec2::x)>(m_garbage_rng() % Matrix::width);
+        for (auto i = u8{ 0 }; i < garbage.num_lines; ++i) {
+            for (auto y = decltype(Matrix::height){ 0 }; y < Matrix::height - 1; ++y) {
+                m_matrix.copy_line(y, y + 1);
+            }
+            m_matrix.fill(Matrix::height - 1, TetrominoType::Garbage);
+            m_matrix.operator[](Vec2{ gap_position, Matrix::height - 1 }) = TetrominoType::Empty;
+        }
+    }
+}
+
+std::optional<GarbageSendEvent> ObpfTetrion::simulate_next_frame(KeyState const key_state) {
+    auto garbage_lines_to_send = u8{ 0 };
     if (is_game_over() or m_next_frame < m_start_frame) {
         ++m_next_frame;
-        return;
+        return std::nullopt;
     }
     if (m_next_frame == m_start_frame) {
         spawn_next_tetromino();
     }
 
-    if (auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
-        std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr) {
+    // clang-format off
+    if (
+        auto const line_clear_delay_poll_result = m_line_clear_delay.poll();
+        std::get_if<LineClearDelay::DelayEnded>(&line_clear_delay_poll_result) != nullptr
+    ) {  // clang-format on
         auto const lines = std::get<LineClearDelay::DelayEnded>(line_clear_delay_poll_result).lines;
+        switch (lines.size()) {
+            case 2:
+                garbage_lines_to_send += 1;
+                break;
+            case 3:
+                garbage_lines_to_send += 2;
+                break;
+            case 4:
+                garbage_lines_to_send += 4;
+                break;
+            default:
+                break;
+        }
         clear_lines(lines);
     } else if (std::get_if<LineClearDelay::DelayIsActive>(&line_clear_delay_poll_result) != nullptr) {
         process_keys(key_state);
         ++m_next_frame;
-        return;
+        return std::nullopt;
     } else {
         assert(std::holds_alternative<LineClearDelay::DelayIsInactive>(line_clear_delay_poll_result));
     }
@@ -56,7 +95,7 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
             m_lock_delay_state.clear();
             if (is_game_over()) {
                 ++m_next_frame;
-                return;
+                return std::nullopt;
             }
             break;
         case EntryDelayPollResult::ShouldNotSpawn:
@@ -77,9 +116,11 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
         m_next_gravity_frame += gravity_delay;
     }
 
+    auto did_freeze = false;
     switch (m_lock_delay_state.poll()) {
         case LockDelayPollResult::ShouldLock:
             freeze_and_destroy_active_tetromino();  // we could lose the game here due to "Lock Out"
+            did_freeze = true;
             m_is_hold_possible = true;
             // Even if we lost the game, it's not an error to start the entry delay -- it will simply get
             // ignored at the start of the next frame.
@@ -100,11 +141,24 @@ void ObpfTetrion::simulate_next_frame(KeyState const key_state) {
         case None:
             break;
     }
-    determine_lines_to_clear();
+    auto const are_there_lines_to_clear = determine_lines_to_clear();
+
+    auto const can_apply_garbage = did_freeze and not are_there_lines_to_clear;
+    if (can_apply_garbage and not m_garbage_receive_queue.empty()) {
+        spdlog::info("trying to apply garbage");
+        apply_expired_garbage();
+    }
 
     refresh_ghost_tetromino();
 
     ++m_next_frame;
+
+    if (garbage_lines_to_send == 0) {
+        return std::nullopt;
+    }
+    return std::optional{
+        GarbageSendEvent{ m_next_frame, garbage_lines_to_send }
+    };
 }
 
 [[nodiscard]] std::vector<ObserverTetrion*> ObpfTetrion::get_observers() const {
@@ -139,6 +193,10 @@ void ObpfTetrion::on_client_disconnected(u8) {}
     return m_hold_piece;
 }
 
+void ObpfTetrion::receive_garbage(GarbageSendEvent const garbage) {
+    m_garbage_receive_queue.push_back(garbage);
+}
+
 [[nodiscard]] u32 ObpfTetrion::level() const {
     return m_num_lines_cleared / 10;
 }
@@ -149,7 +207,7 @@ void ObpfTetrion::freeze_and_destroy_active_tetromino() {
     }
     auto const mino_positions = get_mino_positions(active_tetromino().value());
     if (is_tetromino_completely_invisible(active_tetromino().value())) {
-        m_is_game_over = true;
+        m_game_over_since_frame = m_next_frame;
     }
     for (auto const position : mino_positions) {
         m_matrix[position] = active_tetromino().value().type;
@@ -198,7 +256,7 @@ void ObpfTetrion::spawn_next_tetromino() {
         if (m_bag_index == std::tuple_size_v<decltype(Bag::tetrominos)> - 1) {
             m_bag_index = 0;
             m_bags.at(0) = m_bags.at(1);
-            m_bags.at(1) = Bag{ m_random };
+            m_bags.at(1) = Bag{ m_bags_rng };
         } else {
             ++m_bag_index;
         }
@@ -206,7 +264,7 @@ void ObpfTetrion::spawn_next_tetromino() {
     }
 
     if (not is_active_tetromino_position_valid()) {
-        m_is_game_over = true;
+        m_game_over_since_frame = m_next_frame;
         m_is_soft_dropping = false;
         return;
     }
@@ -466,7 +524,7 @@ void ObpfTetrion::hold() {
     m_is_hold_possible = false;
 }
 
-void ObpfTetrion::determine_lines_to_clear() {
+[[nodiscard]] bool ObpfTetrion::determine_lines_to_clear() {
     auto lines_to_clear = c2k::StaticVector<u8, 4>{};
     for (auto i = std::size_t{ 0 }; i < Matrix::height; ++i) {
         auto const line = Matrix::height - i - 1;
@@ -485,7 +543,9 @@ void ObpfTetrion::determine_lines_to_clear() {
                 m_action_handler_user_data
             );
         }
+        return true;
     }
+    return false;
 }
 
 [[nodiscard]] u64 ObpfTetrion::score_for_num_lines_cleared(std::size_t const num_lines_cleared) const {

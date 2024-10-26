@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <magic_enum.hpp>
 #include <memory>
+#include <ranges>
 #include <simulator/multiplayer_tetrion.hpp>
 
 NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string const& server, std::uint16_t const port) {
@@ -53,13 +55,22 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string
     );
 }
 
-void MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
+[[nodiscard]] std::optional<GarbageSendEvent> MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
     m_key_state_buffer.push_back(key_state);
     if (m_key_state_buffer.size() == heartbeat_interval) {
         send_heartbeat_message();
         m_key_state_buffer = {};
     }
-    ObpfTetrion::simulate_next_frame(key_state);
+    auto const outgoing_garbage = ObpfTetrion::simulate_next_frame(key_state);
+    if (outgoing_garbage.has_value()) {
+        // clang-format off
+        m_outgoing_garbage_queue.apply(
+            [outgoing_garbage = outgoing_garbage.value()](std::deque<GarbageSendEvent>& queue) {
+                queue.push_back(outgoing_garbage);
+            }
+        );
+        // clang-format on
+    }
 
     m_message_queue.apply([this](std::deque<std::unique_ptr<AbstractMessage>>& queue) {
         while (not queue.empty()) {
@@ -78,6 +89,7 @@ void MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
             }
         }
     });
+    return outgoing_garbage;
 }
 
 [[nodiscard]] std::vector<ObserverTetrion*> MultiplayerTetrion::get_observers() const {
@@ -91,13 +103,14 @@ void MultiplayerTetrion::simulate_next_frame(KeyState const key_state) {
 
 void MultiplayerTetrion::on_client_disconnected(u8 const client_id) {
     auto const find_iterator = std::ranges::find_if(m_observers, [client_id](auto const& observer) -> bool {
-        return observer->client_id() == client_id;
+        return observer->id() == client_id;
     });
     if (find_iterator == m_observers.end()) {
         spdlog::error("client {} disconnected, but no observer found", client_id);
         return;
     }
     (*find_iterator)->m_is_connected = false;
+    // todo: set the observer to be game over
 }
 
 void MultiplayerTetrion::send_heartbeat_message() {
@@ -109,22 +122,77 @@ void MultiplayerTetrion::send_heartbeat_message() {
 }
 
 void MultiplayerTetrion::process_state_broadcast_message(StateBroadcast const& message) {
-    for (auto const& client_states : message.states_per_client) {
-        auto const& [id, states] = client_states;
-        auto observer_it = std::ranges::find_if(m_observers, [id](auto const& observer) -> bool {
-            return observer->client_id() == id;
-        });
-        if (observer_it == m_observers.end()) {
-            if (id != m_client_id) {
-                spdlog::error("received state broadcast for unknown client id {}", id);
+    auto tetrions = std::vector<ObpfTetrion*>{};
+    tetrions.reserve(m_observers.size() + 1);
+    tetrions.push_back(this);
+    for (auto const& observer : m_observers) {
+        tetrions.push_back(observer.get());
+    }
+
+    for (auto i = usize{ 0 }; i < std::tuple_size_v<decltype(StateBroadcast::ClientStates::states)>; ++i) {
+        if (m_observers.empty()) {
+            break;
+        }
+        assert(
+            std::ranges::all_of(
+                m_observers,
+                [&](auto const& observer) { return observer->next_frame() == m_observers.front()->next_frame(); }
+            )
+            and "not all observers are synchronized"
+        );
+        auto const observers_frame = m_observers.front()->next_frame();
+
+        auto garbage_send_events = std::unordered_map<u8, GarbageSendEvent>{};
+        for (auto const& client_states : message.states_per_client) {
+            auto const& [id, states] = client_states;
+            auto observer_it =
+                std::ranges::find_if(m_observers, [id](auto const& observer) -> bool { return observer->id() == id; });
+            if (observer_it == m_observers.end()) {
+                continue;
             }
-            continue;
+            if (auto const garbage_send_event = (*observer_it)->process_key_state(states.at(i));
+                garbage_send_event.has_value()) {
+                garbage_send_events.emplace(id, garbage_send_event.value());
+            }
         }
-        spdlog::info("advancing observer {} to frame {}", id, message.frame);
-        for (auto const& state : states) {
-            (*observer_it)->process_key_state(state);
+
+        // apply garbage coming from ourselves
+        while (true) {
+            auto const garbage = m_outgoing_garbage_queue.apply(
+                [observers_frame](std::deque<GarbageSendEvent>& queue) -> std::optional<GarbageSendEvent> {
+                    if (queue.empty()) {
+                        return std::nullopt;
+                    }
+                    auto const garbage = queue.front();
+                    if (garbage.frame < observers_frame) {
+                        return std::nullopt;
+                    }
+                    queue.pop_front();
+                    return garbage;
+                }
+            );
+            if (not garbage.has_value()) {
+                break;
+            }
+            auto target_tetrion = determine_garbage_target(tetrions, id(), garbage.value().frame);
+            if (not target_tetrion.has_value()) {
+                continue;
+            }
+            target_tetrion.value().receive_garbage(garbage.value());
         }
-        spdlog::info("observer frame after simulation: {}", (*observer_it)->next_frame());
+
+        // apply garbage between observers
+        for (auto const [sender_client_id, garbage_send_event] : garbage_send_events) {
+            auto target_tetrion = determine_garbage_target(tetrions, sender_client_id, garbage_send_event.frame);
+            if (not target_tetrion.has_value()) {
+                continue;
+            }
+            if (target_tetrion.value().id() == id()) {
+                receive_garbage(garbage_send_event);
+                continue;
+            }
+            target_tetrion.value().receive_garbage(garbage_send_event);
+        }
     }
 }
 

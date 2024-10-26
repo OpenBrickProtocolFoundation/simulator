@@ -1,6 +1,7 @@
 #pragma once
 
 #include <spdlog/spdlog.h>
+#include <atomic>
 #include <cstdint>
 #include <lib2k/random.hpp>
 #include <simulator/tetrion.hpp>
@@ -23,9 +24,9 @@ private:
     c2k::ServerSocket m_server_socket;
     std::vector<c2k::ClientSocket> m_client_sockets;
     c2k::Synchronized<std::vector<ClientInfo>> m_client_infos;
+    std::atomic_size_t m_expected_player_count = 0;
     std::vector<std::jthread> m_client_threads;
     std::jthread m_broadcasting_thread;
-    std::size_t m_expected_player_count;
     std::uint8_t m_next_client_id = 0;
     std::atomic_flag m_should_stop;
     c2k::Random::Seed m_seed;
@@ -45,7 +46,7 @@ public:
           m_seed{ c2k::Random{}.next_integral<c2k::Random::Seed>() } {
         // todo: timeout
         m_expected_player_count = static_cast<std::size_t>(m_lobby_socket.value().receive<std::uint16_t>().get());
-        spdlog::info("expected player count: {}", m_expected_player_count);
+        spdlog::info("expected player count: {}", m_expected_player_count.load());
 
         m_client_sockets.reserve(m_expected_player_count);
         m_client_infos.apply([this](std::vector<ClientInfo>& client_infos) {
@@ -69,7 +70,7 @@ public:
           m_seed{ c2k::Random{}.next_integral<c2k::Random::Seed>() } {
         // todo: timeout
         m_expected_player_count = num_expected_players;
-        spdlog::info("expected player count: {}", m_expected_player_count);
+        spdlog::info("expected player count: {}", m_expected_player_count.load());
 
         m_client_sockets.reserve(m_expected_player_count);
         m_client_infos.apply([this](std::vector<ClientInfo>& client_infos) {

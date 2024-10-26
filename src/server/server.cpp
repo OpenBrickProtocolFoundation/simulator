@@ -40,12 +40,12 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
             spdlog::info("heartbeat message frame: {}", heartbeat_message.frame);
 
             self.m_client_infos.apply([&heartbeat_message, index](std::vector<ClientInfo>& client_infos) {
-                auto& client_info = client_infos.at(index);
-
-                auto& tetrion = client_info.tetrion;
                 for (auto const key_state : heartbeat_message.key_states) {
-                    client_info.key_states.push_back(key_state);
-                    tetrion.simulate_next_frame(key_state);
+                    // Queue all the key states and simulate the frames on the main thread when
+                    // the states of all clients have arrived. We cannot simulate the tetrions right
+                    // here because they can influence each other via sent garbage. This has to
+                    // be synchronized.
+                    client_infos.at(index).key_states.push_back(key_state);
                 }
             });
         }
@@ -81,6 +81,10 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
 
 void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) {
     using namespace std::chrono_literals;
+
+    while (self.m_expected_player_count == 0) {
+        std::this_thread::sleep_for(10ms);
+    }
 
     // wait for all clients to connect
     while (not stop_token.stop_requested()) {
@@ -121,6 +125,41 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                     return num_clients_connected;
                 }
 
+                // go through all the connected clients and determine the minimum number of key states
+                // that have been queued up for all clients
+                auto const min_num_key_states_queued = std::ranges::min(
+                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected; })
+                    | std::views::transform([](auto const& client_info) { return client_info.key_states.size(); })
+                );
+
+                for (auto i = usize{ 0 }; i < min_num_key_states_queued; ++i) {
+                    auto garbage_send_events = std::unordered_map<u8, GarbageSendEvent>{};
+                    for (auto& client_info : client_infos) {
+                        if (not client_info.is_connected) {
+                            continue;
+                        }
+                        auto const key_state = client_info.key_states.at(i);
+                        auto& tetrion = client_info.tetrion;
+                        // clang-format off
+                        if (
+                            auto const garbage_send_event = tetrion.simulate_next_frame(key_state);
+                            garbage_send_event.has_value()
+                        ) {  // clang-format on
+                            garbage_send_events.emplace(client_info.id, garbage_send_event.value());
+                        }
+                    }
+                    auto const tetrions =
+                        client_infos | std::views::transform([](auto& client_info) { return &client_info.tetrion; })
+                        | std::ranges::to<std::vector>();
+                    for (auto const [sender_client_id, garbage_send_event] : garbage_send_events) {
+                        auto target_tetrion =
+                            determine_garbage_target(tetrions, sender_client_id, garbage_send_event.frame);
+                        if (target_tetrion.has_value()) {
+                            target_tetrion.value().receive_garbage(garbage_send_event);
+                        }
+                    }
+                }
+
                 // first we need to find the minimum number of frames simulated by any client that is connected
                 auto const min_num_frames_simulated = std::ranges::min(
                     client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected; })
@@ -133,8 +172,10 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                         while (client_info.tetrion.next_frame() < min_num_frames_simulated) {
                             static constexpr auto key_state = KeyState{};
                             client_info.key_states.push_back(key_state);
-                            // we simulate the frame here, because we won't receive any key states from the client
-                            client_info.tetrion.simulate_next_frame(key_state);
+                            // We simulate the frame here, because we won't receive any key states from the client.
+                            // We ignore the return value because this client is not allowed to send any garbage since
+                            // it is not connected anymore.
+                            std::ignore = client_info.tetrion.simulate_next_frame(key_state);
                         }
                     }
                 }

@@ -185,6 +185,7 @@ static constexpr auto wall_kick_data_i = WallKickTable{
             return wall_kick_data_jltsz.at(index);
         case TetrominoType::I:
             return wall_kick_data_i.at(index);
+        case TetrominoType::Garbage:
         case TetrominoType::Empty:
             spdlog::error("tetromino type must not be empty");
             return wall_kick_data_jltsz.at(index);
