@@ -216,7 +216,10 @@ uint64_t obpf_tetrion_get_next_frame(ObpfTetrion const* const tetrion) try {
 }
 
 void obpf_tetrion_simulate_next_frame(ObpfTetrion* const tetrion, ObpfKeyState const key_state) try {
-    tetrion->simulate_next_frame(KeyState::from_bitmask(key_state.bitmask).value());
+    // Ignoring the return value because the client application should not need to know anything about
+    // the garbage that was sent. This should all be handled internally by the MultiplayerTetrion (in
+    // case of being a client) or directly through the C++ API (in case of being a server).
+    std::ignore = tetrion->simulate_next_frame(KeyState::from_bitmask(key_state.bitmask).value());
 } catch (std::exception const& e) {
 
     spdlog::error("Failed to simulate next frame: {}", e.what());
@@ -345,7 +348,7 @@ ObpfStats obpf_tetrion_get_stats(ObpfTetrion const* tetrion) try {
 }
 
 bool obpf_tetrion_is_game_over(ObpfTetrion const* const tetrion) try {
-    return tetrion->is_game_over();
+    return tetrion->game_over_since_frame().has_value();
 } catch (std::exception const& e) {
 
     spdlog::error("Failed to check if game is over: {}", e.what());

@@ -15,9 +15,11 @@ public:
     ObserverTetrion(u64 const seed, u64 const start_frame, u8 const m_client_id, Key)
         : ObpfTetrion{ seed, start_frame }, m_client_id{ m_client_id } {}
 
-    void simulate_next_frame(KeyState) override {}
+    [[nodiscard]] std::optional<GarbageSendEvent> simulate_next_frame(KeyState) override {
+        return std::nullopt;
+    }
 
-    [[nodiscard]] u8 client_id() const {
+    [[nodiscard]] u8 id() const override {
         return m_client_id;
     }
 
@@ -30,5 +32,5 @@ public:
     }
 
 private:
-    void process_key_state(KeyState key_state);
+    [[nodiscard]] std::optional<GarbageSendEvent> process_key_state(KeyState key_state);
 };

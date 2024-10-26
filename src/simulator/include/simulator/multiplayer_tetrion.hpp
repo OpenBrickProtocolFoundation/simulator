@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <lib2k/static_vector.hpp>
 #include <network/constants.hpp>
 #include <network/messages.hpp>
@@ -19,6 +20,7 @@ private:
     std::jthread m_receiving_thread;
     std::vector<std::unique_ptr<ObserverTetrion>> m_observers;
     c2k::Synchronized<std::deque<std::unique_ptr<AbstractMessage>>> m_message_queue{ {} };
+    c2k::Synchronized<std::deque<GarbageSendEvent>> m_outgoing_garbage_queue{ {} };
 
     struct Key {};
 
@@ -45,9 +47,13 @@ public:
           m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_message_queue) },
           m_observers{ std::move(observers) } {}
 
-    void simulate_next_frame(KeyState key_state) override;
+    [[nodiscard]] std::optional<GarbageSendEvent> simulate_next_frame(KeyState key_state) override;
     [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const override;
     void on_client_disconnected(u8 client_id) override;
+
+    [[nodiscard]] u8 id() const override {
+        return m_client_id;
+    }
 
 private:
     void send_heartbeat_message();

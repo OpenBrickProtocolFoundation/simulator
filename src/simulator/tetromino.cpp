@@ -20,6 +20,7 @@ static constexpr std::size_t to_index(TetrominoType const type) {
             return 5;
         case TetrominoType::Z:
             return 6;
+        case TetrominoType::Garbage:
         case TetrominoType::Empty:
             spdlog::error("Cannot map empty tetromino type to index");
             return 0;

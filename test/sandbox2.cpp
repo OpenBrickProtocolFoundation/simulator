@@ -16,7 +16,7 @@ int main() {
         if (std::chrono::steady_clock::now() >= end_time) {
             break;
         }
-        tetrion->simulate_next_frame(KeyState{});
+        std::ignore = tetrion->simulate_next_frame(KeyState{});
         std::this_thread::sleep_for(16ms);
     }
 }
