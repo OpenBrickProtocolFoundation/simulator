@@ -153,9 +153,18 @@ std::optional<GarbageSendEvent> ObpfTetrion::simulate_next_frame(KeyState const 
 
     ++m_next_frame;
 
+    while (garbage_lines_to_send > 0 and not m_garbage_receive_queue.empty()) {
+        --m_garbage_receive_queue.front().num_lines;
+        if (m_garbage_receive_queue.front().num_lines == 0) {
+            m_garbage_receive_queue.pop_front();
+        }
+        --garbage_lines_to_send;
+    }
+
     if (garbage_lines_to_send == 0) {
         return std::nullopt;
     }
+
     return std::optional{
         GarbageSendEvent{ m_next_frame, garbage_lines_to_send }
     };
