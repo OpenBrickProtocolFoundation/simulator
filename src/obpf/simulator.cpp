@@ -239,15 +239,43 @@ void obpf_destroy_tetrion(ObpfTetrion const* const tetrion) try {
     spdlog::error("Failed to destroy tetrion: Unknown error");
 }
 
-uint8_t obpf_tetrion_width() {
+std::uint32_t obpf_garbage_queue_length(ObpfTetrion const* const tetrion) {
+    return tetrion->garbage_queue_length();
+}
+
+std::uint32_t obpf_garbage_queue_num_events(ObpfTetrion const* const tetrion) {
+    return static_cast<std::uint32_t>(tetrion->garbage_queue_num_events());
+}
+
+ObpfGarbageEvent obpf_garbage_queue_event(ObpfTetrion const* const tetrion, uint32_t const index) try {
+    auto const event = tetrion->garbage_queue_event(static_cast<std::size_t>(index));
+    // we do the calculation with signed numbers to simplify the implementation
+    auto const remaining_frames = static_cast<u64>(std::max(
+        i64{ 0 },
+        static_cast<i64>(event.frame + ObpfTetrion::garbage_delay_frames) - static_cast<i64>(tetrion->next_frame())
+    ));
+    return ObpfGarbageEvent{
+        .num_lines = event.num_lines,
+        .remaining_frames = remaining_frames,
+    };
+} catch (std::exception const& e) {
+
+    spdlog::error("Failed to fetch garbage queue event: {}", e.what());
+    return ObpfGarbageEvent{};
+} catch (...) {
+    spdlog::error("Failed to fetch garbage queue event: Unknown error");
+    return ObpfGarbageEvent{};
+}
+
+std::uint8_t obpf_tetrion_width() {
     return uint8_t{ Matrix::width };
 }
 
-uint8_t obpf_tetrion_height() {
+std::uint8_t obpf_tetrion_height() {
     return uint8_t{ Matrix::height };
 }
 
-uint8_t obpf_tetrion_num_invisible_lines() {
+std::uint8_t obpf_tetrion_num_invisible_lines() {
     return uint8_t{ Matrix::num_invisible_lines };
 }
 
@@ -371,6 +399,10 @@ bool obpf_tetrion_is_connected(ObpfTetrion const* tetrion) {
     return tetrion->is_connected();
 }
 
-uint64_t obpf_tetrion_frames_until_game_start(ObpfTetrion const* tetrion) {
+std::uint64_t obpf_tetrion_frames_until_game_start(ObpfTetrion const* tetrion) {
     return tetrion->frames_until_game_start();
+}
+
+std::uint64_t obpf_garbage_delay_frames() {
+    return ObpfTetrion::garbage_delay_frames;
 }

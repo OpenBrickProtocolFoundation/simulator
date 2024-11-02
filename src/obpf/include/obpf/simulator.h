@@ -55,6 +55,11 @@ extern "C" {
         struct ObpfTetrion** observers;
     };
 
+    struct ObpfGarbageEvent {
+        uint8_t num_lines;
+        uint64_t remaining_frames;
+    };
+
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
     OBPF_EXPORT struct ObpfTetrion* obpf_create_multiplayer_tetrion(const char* host, uint16_t port);
     OBPF_EXPORT struct ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion);
@@ -89,6 +94,10 @@ extern "C" {
     OBPF_EXPORT uint64_t obpf_tetrion_get_next_frame(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_tetrion_simulate_next_frame(struct ObpfTetrion* tetrion, ObpfKeyState key_state);
     OBPF_EXPORT void obpf_destroy_tetrion(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT uint32_t obpf_garbage_queue_length(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT uint32_t obpf_garbage_queue_num_events(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT struct ObpfGarbageEvent obpf_garbage_queue_event(struct ObpfTetrion const* tetrion, uint32_t index);
+    OBPF_EXPORT uint64_t obpf_garbage_delay_frames(void);
     OBPF_EXPORT uint8_t obpf_tetrion_width(void);
     OBPF_EXPORT uint8_t obpf_tetrion_height(void);
     OBPF_EXPORT uint8_t obpf_tetrion_num_invisible_lines(void);
