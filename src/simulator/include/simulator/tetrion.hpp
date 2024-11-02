@@ -7,7 +7,9 @@
 #include <lib2k/random.hpp>
 #include <lib2k/static_vector.hpp>
 #include <lib2k/types.hpp>
+#include <numeric>
 #include <optional>
+#include <ranges>
 #include <vector>
 #include "action.hpp"
 #include "bag.hpp"
@@ -24,10 +26,11 @@
 struct ObserverTetrion;
 
 struct ObpfTetrion {
+    static constexpr auto garbage_delay_frames = u64{ 10 * 60 };
+
 private:
     static constexpr auto spawn_position = Vec2{ 3, 0 };
     static constexpr auto spawn_rotation = Rotation::North;
-    static constexpr auto garbage_delay_frames = u64{ 90 };
 
     ObpfActionHandler m_action_handler = nullptr;
     void* m_action_handler_user_data = nullptr;
@@ -145,6 +148,20 @@ public:
             return 0;
         }
         return m_start_frame - m_next_frame;
+    }
+
+    [[nodiscard]] u32 garbage_queue_length() const {
+        auto const range =
+            m_garbage_receive_queue | std::views::transform([](auto const& event) { return event.num_lines; });
+        return std::accumulate(range.begin(), range.end(), u32{ 0 });
+    }
+
+    [[nodiscard]] usize garbage_queue_num_events() const {
+        return m_garbage_receive_queue.size();
+    }
+
+    [[nodiscard]] GarbageSendEvent garbage_queue_event(usize const index) const {
+        return m_garbage_receive_queue.at(index);
     }
 
 private:
