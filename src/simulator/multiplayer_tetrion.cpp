@@ -4,7 +4,11 @@
 #include <ranges>
 #include <simulator/multiplayer_tetrion.hpp>
 
-NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string const& server, std::uint16_t const port) {
+NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
+    std::string const& server,
+    std::uint16_t const port,
+    std::string player_name
+) {
     auto socket = c2k::Sockets::create_client(c2k::AddressFamily::Ipv4, server, port);
     auto message = std::unique_ptr<AbstractMessage>{};
     while (true) {
@@ -51,6 +55,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(std::string
         game_start_message.start_frame,
         game_start_message.random_seed,
         std::move(observers),
+        std::move(player_name),
         Key{}
     );
 }
