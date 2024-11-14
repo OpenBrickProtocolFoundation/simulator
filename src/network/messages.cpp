@@ -142,7 +142,7 @@ decltype(MessageHeader::payload_size) Connect::payload_size() const {
         ) };
     }
     auto player_name = std::string{};
-    while (not buffer.size() == 0) {
+    while (buffer.size() != 0) {
         auto const c = buffer.try_extract<char>().value();
         if (c == '\0') {
             break;
