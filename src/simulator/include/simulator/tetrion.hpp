@@ -57,6 +57,7 @@ private:
     bool m_is_soft_dropping = false;
     std::optional<u64> m_game_over_since_frame;
     std::deque<GarbageSendEvent> m_garbage_receive_queue;
+    std::string m_player_name;
 
     static constexpr u64 gravity_delay_by_level(u32 const level) {
         constexpr auto delays = std::array<u64, 13>{
@@ -71,8 +72,12 @@ public:
         SoftDrop,
     };
 
-    explicit ObpfTetrion(u64 const seed, u64 const start_frame)
-        : m_start_frame{ start_frame }, m_bags_rng{ seed }, m_bags{ create_two_bags(m_bags_rng) }, m_garbage_rng{ seed } {
+    explicit ObpfTetrion(u64 const seed, u64 const start_frame, std::string player_name = "https://twitch.tv/coder2k")
+        : m_start_frame{ start_frame },
+          m_bags_rng{ seed },
+          m_bags{ create_two_bags(m_bags_rng) },
+          m_garbage_rng{ seed },
+          m_player_name{ std::move(player_name) } {
         static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
     }
 
@@ -162,6 +167,10 @@ public:
 
     [[nodiscard]] GarbageSendEvent garbage_queue_event(usize const index) const {
         return m_garbage_receive_queue.at(index);
+    }
+
+    [[nodiscard]] std::string const& player_name() const {
+        return m_player_name;
     }
 
 private:

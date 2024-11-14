@@ -62,7 +62,7 @@ TEST(NetworkTests, TooBigHeartbeatMessageFails) {
         std::ignore = send_receive_buffer_and_deserialize(buffer);
         FAIL() << "expected MessageSerializationError";
     } catch (MessageDeserializationError const& e) {
-        EXPECT_STREQ(e.what(), "message payload size 24 is too big for message type 0 (maximum is 23)");
+        EXPECT_STREQ(e.what(), "message payload size 24 is too big for message type 1 (maximum is 23)");
     } catch (...) {
         FAIL() << "expected MessageSerializationError";
     }
@@ -140,7 +140,16 @@ TEST(NetworkTests, SlightlyTooBigGridStateMessageFails) {
 
 TEST(NetworkTests, GameStartMessage) {
     auto const random_seed = static_cast<std::uint64_t>(std::random_device{}());
-    auto const message = GameStart{ 31, 180, random_seed, 5 };
+    auto const message = GameStart{
+        31,
+        180,
+        random_seed,
+        std::vector{
+                    ClientIdentity{ 0, "player0" },
+                    ClientIdentity{ 1, "player1" },
+                    ClientIdentity{ 2, "player2" },
+                    },
+    };
 
     auto const deserialized_message = send_receive_and_deserialize(message);
 

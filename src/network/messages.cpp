@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cctype>
 #include <chrono>
 #include <limits>
 #include <network/messages.hpp>
@@ -25,6 +26,8 @@
 
     auto const message_max_payload_size = [message_type] {
         switch (message_type) {
+            case MessageType::Connect:
+                return Connect::max_payload_size();
             case MessageType::Heartbeat:
                 return Heartbeat::max_payload_size();
             case MessageType::GridState:
@@ -70,6 +73,8 @@
 
     try {
         switch (message_type) {
+            case MessageType::Connect:
+                return std::make_unique<Connect>(Connect::deserialize(buffer));
             case MessageType::Heartbeat:
                 return std::make_unique<Heartbeat>(Heartbeat::deserialize(buffer));
             case MessageType::GridState:
@@ -85,6 +90,70 @@
         throw MessageDeserializationError{ std::format("failed to deserialize message: {}", exception.what()) };
     }
     std::unreachable();
+}
+
+[[nodiscard]] static std::string sanitize(std::string_view const player_name) {
+    auto sanitized = std::string{};
+    auto const max_length = std::min(player_name_buffer_size - 1, player_name.length());
+    for (auto i = usize{ 0 }; i < max_length; ++i) {
+        auto const c = player_name.at(i);
+        if (not std::isprint(static_cast<unsigned char>(c))) {
+            sanitized += '?';
+        } else {
+            sanitized += c;
+        }
+    }
+    assert(sanitized.length() < player_name_buffer_size - 1);
+    return sanitized;
+}
+
+Connect::Connect(std::string_view const player_name)
+    : player_name{ sanitize(player_name) } {}
+
+[[nodiscard]] MessageType Connect::type() const {
+    return MessageType::Connect;
+}
+
+decltype(MessageHeader::payload_size) Connect::payload_size() const {
+    return max_payload_size();
+}
+
+[[nodiscard]] c2k::MessageBuffer Connect::serialize() const {
+    auto buffer = c2k::MessageBuffer{};
+    buffer << static_cast<u8>(MessageType::Connect) << payload_size();
+    auto const expected_message_size = buffer.size() + player_name_buffer_size;
+    for (auto const c : player_name) {
+        buffer << c;
+    }
+    while (buffer.size() < expected_message_size) {
+        buffer << '\0';
+    }
+    assert(buffer.size() == expected_message_size);
+    return buffer;
+}
+
+[[nodiscard]] Connect Connect::deserialize(c2k::MessageBuffer& buffer) {
+    static constexpr auto required_num_bytes = max_payload_size();  // Message has a fixed size.
+    if (buffer.size() < required_num_bytes) {
+        throw MessageDeserializationError{ std::format(
+            "too few bytes to deserialize Connect message ({} needed, {} received)",
+            required_num_bytes,
+            buffer.size()
+        ) };
+    }
+    auto player_name = std::string{};
+    while (buffer.size() != 0) {
+        auto const c = buffer.try_extract<char>().value();
+        if (c == '\0') {
+            break;
+        }
+        player_name += c;
+    }
+    return Connect{ sanitize(std::move(player_name)) };
+}
+
+[[nodiscard]] bool Connect::equals(AbstractMessage const& other) const {
+    return other.type() == type() and dynamic_cast<Connect const&>(other).player_name == player_name;
 }
 
 [[nodiscard]] MessageType Heartbeat::type() const {
@@ -160,19 +229,31 @@
 }
 
 [[nodiscard]] decltype(MessageHeader::payload_size) GameStart::payload_size() const {
-    return calculate_payload_size();
+    return calculate_payload_size(gsl::narrow<u8>(client_identities.size()));
 }
 
 [[nodiscard]] c2k::MessageBuffer GameStart::serialize() const {
     auto buffer = c2k::MessageBuffer{};
     // clang-format off
-        buffer << static_cast<std::uint8_t>(MessageType::GameStart)
-               << payload_size()
-               << client_id
-               << start_frame
-               << random_seed
-               << num_players;
+    buffer << static_cast<std::uint8_t>(MessageType::GameStart)
+           << payload_size()
+           << client_id
+           << start_frame
+           << random_seed
+           << gsl::narrow<u8>(client_identities.size());
     // clang-format on
+    for (auto const& [other_client_id, player_name] : client_identities) {
+        buffer << other_client_id;
+        auto num_bytes = usize{ 0 };
+        for (auto const c : player_name) {
+            buffer << c;
+            ++num_bytes;
+        }
+        while (num_bytes < player_name_buffer_size) {
+            buffer << '\0';
+            ++num_bytes;
+        }
+    }
     assert(buffer.size() == payload_size() + header_size);
     return buffer;
 }
@@ -183,7 +264,7 @@
         decltype(client_id),
         decltype(start_frame),
         decltype(random_seed),
-        decltype(num_players)
+        u8
     >();
     // clang-format on
     if (buffer.size() < required_num_bytes) {
@@ -203,12 +284,35 @@
             decltype(GameStart::client_id),
             decltype(GameStart::start_frame),
             decltype(GameStart::random_seed),
-            decltype(GameStart::num_players)
+            u8
         >()
         .value();
     // clang-format on
+
+    auto const num_remaining_bytes = num_players * (sizeof(u8) + player_name_buffer_size);
+    if (buffer.size() < num_remaining_bytes) {
+        throw MessageDeserializationError{ std::format(
+            "too few bytes to deserialize client identities within GameStart message ({} needed, {} received)",
+            num_remaining_bytes,
+            buffer.size()
+        ) };
+    }
+    auto client_identities = std::vector<ClientIdentity>{};
+    client_identities.reserve(num_players);
+    for (auto i = decltype(num_players){ 0 }; i < num_players; ++i) {
+        auto const other_client_id = buffer.try_extract<u8>().value();
+        auto player_name = std::string{};
+        for (auto j = usize{ 0 }; j < player_name_buffer_size; ++j) {
+            auto const c = buffer.try_extract<char>().value();
+            if (c != '\0') {
+                player_name += c;
+            }
+        }
+        client_identities.emplace_back(other_client_id, std::move(player_name));
+    }
     assert(buffer.size() == 0);
-    return GameStart{ client_id, start_frame, random_seed, num_players };
+
+    return GameStart{ client_id, start_frame, random_seed, std::move(client_identities) };
 }
 
 StateBroadcast::StateBroadcast(std::uint64_t const frame, std::vector<ClientStates> states_per_client)

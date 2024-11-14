@@ -48,8 +48,8 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
     return nullptr;
 }
 
-struct ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint16_t const port) try {
-    auto tetrion = MultiplayerTetrion::create(host, port);
+ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint16_t const port, char const* const player_name) try {
+    auto tetrion = MultiplayerTetrion::create(host, port, player_name);
     if (tetrion == nullptr) {
         return nullptr;
     }
@@ -397,6 +397,10 @@ void obpf_tetrion_set_action_handler(ObpfTetrion* const tetrion, ObpfActionHandl
 
 bool obpf_tetrion_is_connected(ObpfTetrion const* tetrion) {
     return tetrion->is_connected();
+}
+
+char const* obpf_tetrion_player_name(ObpfTetrion const* const tetrion) {
+    return tetrion->player_name().c_str();
 }
 
 std::uint64_t obpf_tetrion_frames_until_game_start(ObpfTetrion const* tetrion) {

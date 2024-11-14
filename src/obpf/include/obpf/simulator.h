@@ -61,7 +61,11 @@ extern "C" {
     };
 
     OBPF_EXPORT struct ObpfTetrion* obpf_create_tetrion(uint64_t seed);
-    OBPF_EXPORT struct ObpfTetrion* obpf_create_multiplayer_tetrion(const char* host, uint16_t port);
+    OBPF_EXPORT struct ObpfTetrion* obpf_create_multiplayer_tetrion(
+        const char* host,
+        uint16_t port,
+        const char* player_name
+    );
     OBPF_EXPORT struct ObpfObserverList obpf_tetrion_get_observers(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT void obpf_destroy_observers(struct ObpfObserverList observers);
     OBPF_EXPORT struct ObpfTetrion* obpf_clone_tetrion(struct ObpfTetrion const* tetrion);
@@ -71,6 +75,7 @@ extern "C" {
         void* user_data
     );
     OBPF_EXPORT bool obpf_tetrion_is_connected(struct ObpfTetrion const* tetrion);
+    OBPF_EXPORT char const* obpf_tetrion_player_name(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT uint64_t obpf_tetrion_frames_until_game_start(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT ObpfStats obpf_tetrion_get_stats(struct ObpfTetrion const* tetrion);
     OBPF_EXPORT bool obpf_tetrion_is_game_over(struct ObpfTetrion const* tetrion);

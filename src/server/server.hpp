@@ -8,14 +8,33 @@
 #include <sockets/sockets.hpp>
 #include <vector>
 
+enum class ClientState {
+    Connected,
+    Identified,
+    Disconnected,
+};
+
 struct ClientInfo final {
     u8 id;
     ObpfTetrion tetrion;
     std::vector<KeyState> key_states;
-    bool is_connected = true;
+    ClientState state = ClientState::Connected;
+    std::string player_name;  // Not filled by constructor, because the name is transferred later.
 
     explicit ClientInfo(u8 const id, u64 const seed, u64 const start_frame)
         : id{ id }, tetrion{ seed, start_frame } {}
+
+    [[nodiscard]] bool is_connected() const {
+        switch (state) {
+            using enum ClientState;
+            case Connected:
+            case Identified:
+                return true;
+            case Disconnected:
+                return false;
+        }
+        throw std::logic_error{ "unreachable" };
+    }
 };
 
 class Server final {
