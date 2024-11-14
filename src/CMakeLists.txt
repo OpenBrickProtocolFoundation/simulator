@@ -1,3 +1,4 @@
+add_subdirectory(bot)
 add_subdirectory(common)
 add_subdirectory(network)
 add_subdirectory(obpf)
