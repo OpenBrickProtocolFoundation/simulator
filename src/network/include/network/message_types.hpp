@@ -3,7 +3,8 @@
 #include <cstdint>
 
 enum class MessageType : std::uint8_t {
-    Heartbeat = 0,
+    Connect,
+    Heartbeat,
     GridState,
     GameStart,
     StateBroadcast,

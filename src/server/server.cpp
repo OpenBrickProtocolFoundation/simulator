@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <gsl/gsl>
+#include <lib2k/types.hpp>
 #include <numeric>
 #include <ranges>
 #include "network/messages.hpp"
@@ -20,6 +21,38 @@ void Server::broadcast_client_disconnected_message(u8 const client_id) {
 void Server::process_client(std::stop_token const& stop_token, Server& self, std::size_t const index) {
     using namespace std::chrono_literals;
     auto& socket = self.m_client_sockets.at(index);
+
+    // Wait for Connect message from client...
+    while (not stop_token.stop_requested() and socket.is_connected()) {
+        auto message = std::unique_ptr<AbstractMessage>{};
+        try {
+            message = AbstractMessage::from_socket(socket);
+        } catch (c2k::TimeoutError const&) {
+            spdlog::error("Waiting for Connect message from client {}...", index);
+            continue;
+        } catch (c2k::ReadError const& exception) {
+            spdlog::error("error while reading from socket: {}", exception.what());
+            break;
+        }
+
+        if (message->type() == MessageType::Connect) {
+            auto& connect_message = dynamic_cast<Connect&>(*message);
+            spdlog::info("Client identified itself as '{}'.", connect_message.player_name);
+            // clang-format off
+            self.m_client_infos.apply(
+                [index, name = std::move(connect_message.player_name)]
+                (std::vector<ClientInfo>& client_infos) mutable {
+                    client_infos.at(index).player_name = std::move(name);
+                    assert(client_infos.at(index).state == ClientState::Connected);
+                    client_infos.at(index).state = ClientState::Identified;
+                }
+            );
+            // clang-format on
+            break;
+        }
+
+        // todo: This client sent an unexpected message. It should be disconnected.
+    }
 
     while (not stop_token.stop_requested() and socket.is_connected()) {
         auto message = std::unique_ptr<AbstractMessage>{};
@@ -53,7 +86,7 @@ void Server::process_client(std::stop_token const& stop_token, Server& self, std
     spdlog::info("client {}:{} disconnected", socket.remote_address().address, socket.remote_address().port);
     auto const client_id = self.m_client_infos.apply([index](std::vector<ClientInfo>& client_infos) {
         auto& client_info = client_infos.at(index);
-        client_info.is_connected = false;
+        client_info.state = ClientState::Disconnected;
         return client_info.id;
     });
     self.broadcast_client_disconnected_message(client_id);
@@ -86,29 +119,52 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
         std::this_thread::sleep_for(10ms);
     }
 
-    // wait for all clients to connect
+    // Wait for all clients to connect and identify.
     while (not stop_token.stop_requested()) {
-        auto const num_connected_clients =
-            self.m_client_infos.apply([](std::vector<ClientInfo> const& client_infos) { return client_infos.size(); });
-        if (num_connected_clients == self.m_expected_player_count) {
+        // clang-format off
+        auto const num_identified_clients = self.m_client_infos.apply(
+            [](std::vector<ClientInfo> const& client_infos) {
+                return gsl::narrow<usize>(
+                    std::ranges::count_if(
+                        client_infos,
+                        [&](ClientInfo const& info) {
+                            return info.state == ClientState::Identified;
+                        }
+                    )
+                );
+            }
+        );
+        // clang-format on
+        if (num_identified_clients == self.m_expected_player_count) {
             break;
         }
-        spdlog::info("not all clients have connected yet, number of clients: {}", num_connected_clients);
+        spdlog::info(
+            "not all clients have connected/identified yet ({} of {})",
+            num_identified_clients,
+            self.m_expected_player_count.load()
+        );
         // todo: replace sleep with condition variable
         std::this_thread::sleep_for(100ms);
     }
 
-    auto i = std::uint8_t{ 0 };
-    for (auto& socket : self.m_client_sockets) {
+    auto const client_identities = self.m_client_infos.apply([](std::vector<ClientInfo>& client_infos) {
+        auto identities = std::vector<ClientIdentity>{};
+        identities.reserve(client_infos.size());
+        for (auto const& [i, client_info] : std::views::enumerate(client_infos)) {
+            identities.emplace_back(gsl::narrow<u8>(i), client_info.player_name);
+        }
+        return identities;
+    });
+
+    for (auto const& [i, socket] : std::views::enumerate(self.m_client_sockets)) {
         spdlog::info("assigning id {} to client and sending seed {}", i, self.m_seed);
         auto const message = GameStart{
-            i,
+            gsl::narrow<u8>(i),
             start_frame,
             self.m_seed,
-            gsl::narrow<std::uint8_t>(self.m_client_sockets.size()),
+            client_identities,
         };
         socket.send(message.serialize()).wait();
-        ++i;
     }
 
     auto last_min_num_frames_simulated = std::optional<std::uint64_t>{ std::nullopt };
@@ -118,7 +174,7 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
             self.m_client_infos.apply([&self, &last_min_num_frames_simulated](std::vector<ClientInfo>& client_infos) {
                 auto const num_clients_connected =
                     std::ranges::count_if(client_infos, [](ClientInfo const& client_info) {
-                        return client_info.is_connected;
+                        return client_info.is_connected();
                     });
 
                 if (num_clients_connected == 0) {
@@ -128,14 +184,14 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
                 // go through all the connected clients and determine the minimum number of key states
                 // that have been queued up for all clients
                 auto const min_num_key_states_queued = std::ranges::min(
-                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected; })
+                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected(); })
                     | std::views::transform([](auto const& client_info) { return client_info.key_states.size(); })
                 );
 
                 for (auto i = usize{ 0 }; i < min_num_key_states_queued; ++i) {
                     auto garbage_send_events = std::unordered_map<u8, GarbageSendEvent>{};
                     for (auto& client_info : client_infos) {
-                        if (not client_info.is_connected) {
+                        if (not client_info.is_connected()) {
                             continue;
                         }
                         auto const key_state = client_info.key_states.at(i);
@@ -162,13 +218,13 @@ void Server::keep_broadcasting(std::stop_token const& stop_token, Server& self) 
 
                 // first we need to find the minimum number of frames simulated by any client that is connected
                 auto const min_num_frames_simulated = std::ranges::min(
-                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected; })
+                    client_infos | std::views::filter([](auto const& client_info) { return client_info.is_connected(); })
                     | std::views::transform([](auto const& client_info) { return client_info.tetrion.next_frame(); })
                 );
 
                 // to not block the broadcasting, we will create empty key states for all clients that are not connected
                 for (auto& client_info : client_infos) {
-                    if (not client_info.is_connected) {
+                    if (not client_info.is_connected()) {
                         while (client_info.tetrion.next_frame() < min_num_frames_simulated) {
                             static constexpr auto key_state = KeyState{};
                             client_info.key_states.push_back(key_state);

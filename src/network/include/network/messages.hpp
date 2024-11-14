@@ -47,6 +47,25 @@ private:
     [[nodiscard]] virtual bool equals(AbstractMessage const& other) const = 0;
 };
 
+static constexpr auto player_name_buffer_size = usize{ 32 };
+
+struct Connect final : AbstractMessage {
+    std::string player_name;
+
+    explicit Connect(std::string_view player_name);
+
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
+        return static_cast<decltype(MessageHeader::payload_size)>(player_name_buffer_size);
+    }
+
+    [[nodiscard]] MessageType type() const override;
+    [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
+    [[nodiscard]] c2k::MessageBuffer serialize() const override;
+    [[nodiscard]] static Connect deserialize(c2k::MessageBuffer& buffer);
+
+    [[nodiscard]] bool equals(AbstractMessage const& other) const override;
+};
+
 struct Heartbeat final : AbstractMessage {
 public:
     std::uint64_t frame;
@@ -107,19 +126,36 @@ private:
     }
 };
 
+struct ClientIdentity final {
+    u8 client_id;
+    std::string player_name;
+
+    ClientIdentity(u8 const client_id, std::string player_name)
+        : client_id{ client_id }, player_name{ std::move(player_name) } {}
+
+    [[nodiscard]] bool operator==(ClientIdentity const& other) const = default;
+};
+
 struct GameStart final : AbstractMessage {
     std::uint8_t client_id;
     std::uint64_t start_frame;
     std::uint64_t random_seed;
-    std::uint8_t num_players;
+    std::vector<ClientIdentity> client_identities;
 
     GameStart(
         std::uint8_t const client_id,
         std::uint64_t const start_frame,
         std::uint64_t const random_seed,
-        std::uint8_t const num_players
+        std::vector<ClientIdentity> client_identities
     )
-        : client_id{ client_id }, start_frame{ start_frame }, random_seed{ random_seed }, num_players{ num_players } {}
+        : client_id{ client_id },
+          start_frame{ start_frame },
+          random_seed{ random_seed },
+          client_identities{ std::move(client_identities) } {
+        if (this->client_identities.size() > std::numeric_limits<u8>::max()) {
+            throw std::invalid_argument{ "Number of clients is too high." };
+        }
+    }
 
     [[nodiscard]] MessageType type() const override;
     [[nodiscard]] decltype(MessageHeader::payload_size) payload_size() const override;
@@ -127,24 +163,29 @@ struct GameStart final : AbstractMessage {
     [[nodiscard]] static GameStart deserialize(c2k::MessageBuffer& buffer);
 
     [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) max_payload_size() {
-        return calculate_payload_size();
+        return calculate_payload_size(std::numeric_limits<u8>::max());
+    }
+
+    [[nodiscard]] u8 num_players() const {
+        return gsl::narrow<u8>(client_identities.size());
     }
 
 private:
-    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size() {
+    [[nodiscard]] static constexpr decltype(MessageHeader::payload_size) calculate_payload_size(u8 const num_players) {
         return static_cast<decltype(MessageHeader::payload_size)>(
-            sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed) + sizeof(num_players)
+            sizeof(client_id) + sizeof(start_frame) + sizeof(random_seed) + sizeof(u8) /* num players */
+            + num_players * (sizeof(ClientIdentity::client_id) + player_name_buffer_size)
         );
     }
 
     [[nodiscard]] bool equals(AbstractMessage const& other) const override {
         auto const& other_game_start = static_cast<decltype(*this)&>(other);
-        return std::tie(client_id, start_frame, random_seed, num_players)
+        return std::tie(client_id, start_frame, random_seed, client_identities)
                == std::tie(
                    other_game_start.client_id,
                    other_game_start.start_frame,
                    other_game_start.random_seed,
-                   other_game_start.num_players
+                   other_game_start.client_identities
                );
     }
 };

@@ -12,8 +12,8 @@ private:
     bool m_is_connected = true;
 
 public:
-    ObserverTetrion(u64 const seed, u64 const start_frame, u8 const m_client_id, Key)
-        : ObpfTetrion{ seed, start_frame }, m_client_id{ m_client_id } {}
+    ObserverTetrion(u64 const seed, u64 const start_frame, u8 const m_client_id, std::string player_name, Key)
+        : ObpfTetrion{ seed, start_frame, std::move(player_name) }, m_client_id{ m_client_id } {}
 
     [[nodiscard]] std::optional<GarbageSendEvent> simulate_next_frame(KeyState) override {
         return std::nullopt;

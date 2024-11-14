@@ -11,12 +11,17 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
 ) {
     auto socket = c2k::Sockets::create_client(c2k::AddressFamily::Ipv4, server, port);
     auto message = std::unique_ptr<AbstractMessage>{};
+
+    // Identify this client...
+    socket.send(Connect{ player_name }.serialize()).wait();
+
+    // Wait for the GameStart message coming from the server...
     while (true) {
         try {
             message = AbstractMessage::from_socket(socket);
             break;
-        } catch (c2k::TimeoutError const& exception) {
-            spdlog::error("timeout error while waiting for game start message: {}", exception.what());
+        } catch (c2k::TimeoutError const&) {
+            spdlog::info("waiting for the game to start...");
         } catch (c2k::ReadError const& exception) {
             spdlog::error("error while reading from socket: {}", exception.what());
             return nullptr;
@@ -32,7 +37,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
     spdlog::info("received game start message");
     auto const& game_start_message = dynamic_cast<GameStart const&>(*message);
 
-    auto const num_observers = static_cast<usize>(game_start_message.num_players - 1);
+    auto const num_observers = static_cast<usize>(game_start_message.num_players() - 1);
     auto observers = std::vector<std::unique_ptr<ObserverTetrion>>{};
     observers.reserve(num_observers);
     auto observer_id = u8{ 0 };
@@ -40,14 +45,43 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
         if (observer_id == game_start_message.client_id) {
             ++observer_id;
         }
+
+        auto const find_iterator =
+            std::ranges::find_if(game_start_message.client_identities, [observer_id](auto const& identity) {
+                return identity.client_id == observer_id;
+            });
+
+        using namespace std::string_literals;
+        // clang-format off
+        auto observer_name = (
+            find_iterator == game_start_message.client_identities.cend()
+            ? "<unknown observer name>"s
+            : find_iterator->player_name
+        );
+        // clang-format on
+
         observers.push_back(std::make_unique<ObserverTetrion>(
             game_start_message.random_seed,
             game_start_message.start_frame,
             observer_id,
+            std::move(observer_name),
             ObserverTetrion::Key{}
         ));
         ++observer_id;
     }
+
+    auto const find_iterator =
+        std::ranges::find_if(game_start_message.client_identities, [&game_start_message](auto const& identity) {
+            return identity.client_id == game_start_message.client_id;
+        });
+
+    // clang-format off
+    auto this_player_name = (
+        find_iterator == game_start_message.client_identities.cend()
+        ? player_name
+        : find_iterator->player_name
+    );
+    // clang-format on
 
     return std::make_unique<MultiplayerTetrion>(
         std::move(socket),
@@ -55,7 +89,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
         game_start_message.start_frame,
         game_start_message.random_seed,
         std::move(observers),
-        std::move(player_name),
+        std::move(this_player_name),
         Key{}
     );
 }
