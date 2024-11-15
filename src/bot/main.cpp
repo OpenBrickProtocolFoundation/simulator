@@ -7,15 +7,20 @@
 #include <unordered_map>
 
 class Move {
+    bool m_hold;
     int m_rotation;
     int m_movement;
     bool m_dropped = false;
 
 public:
-    Move(int const rotation, int const movement)
-        : m_rotation{ rotation }, m_movement{ movement } {}
+    Move(bool const hold, int const rotation, int const movement)
+        : m_hold{ hold }, m_rotation{ rotation }, m_movement{ movement } {}
 
     [[nodiscard]] std::optional<Key> next_key() {
+        if (m_hold) {
+            m_hold = false;
+            return Key::Hold;
+        }
         if (m_rotation > 0) {
             --m_rotation;
             return Key::RotateClockwise;
@@ -117,51 +122,57 @@ struct Heuristic {
         return {};
     }
     auto heuristics = std::vector<Heuristic>{};
-    for (auto movement = -5; movement <= 5; ++movement) {
-        for (auto rotation = 0; rotation < 4; ++rotation) {
-            auto copy = ObpfTetrion{ tetrion };
-            auto moves = std::vector<Move>{};
+    for (auto hold : std::array{ true, false }) {
+        for (auto movement = -5; movement <= 5; ++movement) {
+            for (auto rotation = 0; rotation < 4; ++rotation) {
+                auto copy = ObpfTetrion{ tetrion };
 
-            for (auto i = 0; i < rotation; ++i) {
-                std::ignore = copy.simulate_next_frame(to_key_state(Key::RotateClockwise));
-                std::ignore = copy.simulate_next_frame(KeyState{});
-            }
-
-            for (auto i = 0; i > movement; --i) {
-                std::ignore = copy.simulate_next_frame(to_key_state(Key::Left));
-                std::ignore = copy.simulate_next_frame(KeyState{});
-            }
-            for (auto i = 0; i < movement; ++i) {
-                std::ignore = copy.simulate_next_frame(to_key_state(Key::Right));
-                std::ignore = copy.simulate_next_frame(KeyState{});
-            }
-            std::ignore = copy.simulate_next_frame(to_key_state(Key::Drop));
-            std::ignore = copy.simulate_next_frame(KeyState{});
-
-            // Await lock delay.
-            while (not copy.active_tetromino().has_value()) {
-                if (copy.game_over_since_frame().has_value()) {
-                    // We've lost the game.
-                    return {};
+                if (hold) {
+                    std::ignore = copy.simulate_next_frame(to_key_state(Key::Hold));
+                    std::ignore = copy.simulate_next_frame(KeyState{});
                 }
-                std::ignore = copy.simulate_next_frame(KeyState{});
-            }
 
-            if (lookahead > 0) {
-                auto best_move = determine_next_move_chain(copy, lookahead - 1);
-                best_move.moves.emplace_front(Move{ rotation, movement });
-                heuristics.push_back(std::move(best_move));
-            } else {
-                heuristics.emplace_back(
-                    MoveChain{
-                        Move{ rotation, movement }
-                },
-                    determine_score(copy)
-                );
-            }
-            if (tetrion.active_tetromino().value().type == TetrominoType::O) {
-                // No sense in rotating the O piece.
-                break;
+                for (auto i = 0; i < rotation; ++i) {
+                    std::ignore = copy.simulate_next_frame(to_key_state(Key::RotateClockwise));
+                    std::ignore = copy.simulate_next_frame(KeyState{});
+                }
+
+                for (auto i = 0; i > movement; --i) {
+                    std::ignore = copy.simulate_next_frame(to_key_state(Key::Left));
+                    std::ignore = copy.simulate_next_frame(KeyState{});
+                }
+                for (auto i = 0; i < movement; ++i) {
+                    std::ignore = copy.simulate_next_frame(to_key_state(Key::Right));
+                    std::ignore = copy.simulate_next_frame(KeyState{});
+                }
+                std::ignore = copy.simulate_next_frame(to_key_state(Key::Drop));
+                std::ignore = copy.simulate_next_frame(KeyState{});
+
+                // Await lock delay.
+                while (not copy.active_tetromino().has_value()) {
+                    if (copy.game_over_since_frame().has_value()) {
+                        // We've lost the game.
+                        return {};
+                    }
+                    std::ignore = copy.simulate_next_frame(KeyState{});
+                }
+
+                if (lookahead > 0) {
+                    auto best_move = determine_next_move_chain(copy, lookahead - 1);
+                    best_move.moves.emplace_front(Move{ hold, rotation, movement });
+                    heuristics.push_back(std::move(best_move));
+                } else {
+                    heuristics.emplace_back(
+                        MoveChain{
+                            Move{ hold, rotation, movement }
+                    },
+                        determine_score(copy)
+                    );
+                }
+                if (tetrion.active_tetromino().value().type == TetrominoType::O) {
+                    // No sense in rotating the O piece.
+                    break;
+                }
             }
         }
     }
