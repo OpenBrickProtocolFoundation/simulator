@@ -23,6 +23,10 @@ add_library(simulator STATIC
         observer_tetrion.cpp
         include/simulator/garbage.hpp
         garbage.cpp
+        log_entry.hpp
+        utils.hpp
+        logger.hpp
+        log_entry.cpp
 )
 
 target_include_directories(simulator

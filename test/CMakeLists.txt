@@ -1,15 +1,11 @@
  CPMAddPackage(
          NAME GTEST
          GITHUB_REPOSITORY google/googletest
-         VERSION 1.14.0
+         VERSION 1.15.2
          OPTIONS
          "INSTALL_GTEST OFF"
          "BUILD_SHARED_LIBS OFF"
  )
-
- add_executable(test_sandbox sandbox.cpp utils.hpp)
- target_link_libraries(test_sandbox PRIVATE obpf_simulator_project_options network)
- target_link_system_libraries(test_sandbox PRIVATE crapper)
 
  add_executable(sandbox2 sandbox2.cpp)
  target_link_libraries(sandbox2 PRIVATE obpf_simulator_project_options network simulator)

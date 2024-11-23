@@ -4,9 +4,11 @@
 #include <array>
 #include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <lib2k/random.hpp>
 #include <lib2k/static_vector.hpp>
 #include <lib2k/types.hpp>
+#include <memory>
 #include <numeric>
 #include <optional>
 #include <ranges>
@@ -72,14 +74,7 @@ public:
         SoftDrop,
     };
 
-    explicit ObpfTetrion(u64 const seed, u64 const start_frame, std::string player_name = "https://twitch.tv/coder2k")
-        : m_start_frame{ start_frame },
-          m_bags_rng{ seed },
-          m_bags{ create_two_bags(m_bags_rng) },
-          m_garbage_rng{ seed },
-          m_player_name{ std::move(player_name) } {
-        static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
-    }
+    explicit ObpfTetrion(u64 seed, u64 start_frame, std::string player_name = "https://twitch.tv/coder2k");
 
     ObpfTetrion(ObpfTetrion const& other) = default;
     ObpfTetrion(ObpfTetrion&& other) noexcept = default;
@@ -200,6 +195,8 @@ private:
     [[nodiscard]] bool is_game_over() const {
         return m_game_over_since_frame.has_value();
     }
+
+    void log_current_state() const;
 
     [[nodiscard]] static std::array<Bag, 2> create_two_bags(std::mt19937_64& random);
 };

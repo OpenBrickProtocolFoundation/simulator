@@ -12,8 +12,6 @@ add_library(obpf
         include/obpf/tetromino.h
         include/obpf/vec2.h
         simulator.cpp
-        include/obpf/lobby.h
-        lobby.cpp
         include/obpf/rotation.h
         include/obpf/stats.h
 )

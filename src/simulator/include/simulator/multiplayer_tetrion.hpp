@@ -39,18 +39,13 @@ public:
 
     explicit MultiplayerTetrion(
         c2k::ClientSocket socket,
-        u8 const client_id,
-        u64 const start_frame,
-        u64 const seed,
+        u8 client_id,
+        u64 start_frame,
+        u64 seed,
         std::vector<std::unique_ptr<ObserverTetrion>> observers,
         std::string player_name,
         Key
-    )
-        : ObpfTetrion{ seed, start_frame, std::move(player_name) },
-          m_socket{ std::move(socket) },
-          m_client_id{ client_id },
-          m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_message_queue) },
-          m_observers{ std::move(observers) } {}
+    );
 
     [[nodiscard]] std::optional<GarbageSendEvent> simulate_next_frame(KeyState key_state) override;
     [[nodiscard]] std::vector<ObserverTetrion*> get_observers() const override;

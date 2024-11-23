@@ -1,12 +1,15 @@
 #include <spdlog/spdlog.h>
 #include <cassert>
 #include <gsl/gsl>
+#include <lib2k/defer.hpp>
 #include <lib2k/static_vector.hpp>
 #include <lib2k/types.hpp>
 #include <magic_enum.hpp>
 #include <ranges>
 #include <simulator/tetrion.hpp>
 #include <simulator/wallkicks.hpp>
+#include "log_entry.hpp"
+#include "logger.hpp"
 
 [[nodiscard]] static auto determine_pressed_keys(KeyState const previous_state, KeyState const current_state) {
     auto result = std::array<bool, magic_enum::enum_count<Key>()>{};
@@ -27,6 +30,15 @@
         }
     }
     return result;
+}
+
+ObpfTetrion::ObpfTetrion(u64 const seed, u64 const start_frame, std::string player_name)
+    : m_start_frame{ start_frame },
+      m_bags_rng{ seed },
+      m_bags{ create_two_bags(m_bags_rng) },
+      m_garbage_rng{ seed },
+      m_player_name{ std::move(player_name) } {
+    static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
 }
 
 void ObpfTetrion::apply_expired_garbage() {
@@ -52,6 +64,10 @@ void ObpfTetrion::apply_expired_garbage() {
 }
 
 std::optional<GarbageSendEvent> ObpfTetrion::simulate_next_frame(KeyState const key_state) {
+    auto const deferred_log = c2k::Defer{ [&, key_state] {
+        Logger::log(LogEntry{ *this, key_state });
+    } };
+
     auto garbage_lines_to_send = u8{ 0 };
     if (is_game_over() or m_next_frame < m_start_frame) {
         ++m_next_frame;
@@ -601,6 +617,8 @@ void ObpfTetrion::on_touch_event() const {
         m_action_handler(static_cast<ObpfAction>(Action::Touch), m_action_handler_user_data);
     }
 }
+
+void ObpfTetrion::log_current_state() const {}
 
 [[nodiscard]] std::array<Bag, 2> ObpfTetrion::create_two_bags(std::mt19937_64& random) {
     auto const bag0 = Bag{ random };
