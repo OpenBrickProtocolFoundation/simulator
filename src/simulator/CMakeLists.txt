@@ -39,7 +39,6 @@ target_link_libraries(simulator
         PUBLIC
         common
         obpf_simulator_project_options
-        PRIVATE
         network
 )
 

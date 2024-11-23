@@ -219,7 +219,7 @@ void MultiplayerTetrion::process_state_broadcast_message(StateBroadcast const& m
                         return std::nullopt;
                     }
                     auto const garbage = queue.front();
-                    if (garbage.frame < observers_frame) {
+                    if (garbage.frame >= observers_frame) {
                         return std::nullopt;
                     }
                     queue.pop_front();
