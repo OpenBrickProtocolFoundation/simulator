@@ -32,17 +32,19 @@
     return result;
 }
 
-ObpfTetrion::ObpfTetrion(u64 const seed, u64 const start_frame, std::string player_name)
+ObpfTetrion::ObpfTetrion(u64 const seed, u64 const start_frame, Logging const logging, std::string player_name)
     : m_start_frame{ start_frame },
       m_bags_rng{ seed },
       m_bags{ create_two_bags(m_bags_rng) },
       m_garbage_rng{ seed },
-      m_player_name{ std::move(player_name) } {
+      m_player_name{ std::move(player_name) },
+      m_logging{ logging } {
     static_assert(std::same_as<std::remove_const_t<decltype(seed)>, c2k::Random::Seed>);
 }
 
 void ObpfTetrion::apply_expired_garbage() {
-    static constexpr auto is_expired = [](GarbageSendEvent const& garbage, u64 const current_frame) {
+    // TODO
+    /*static constexpr auto is_expired = [](GarbageSendEvent const& garbage, u64 const current_frame) {
         return current_frame >= garbage.frame + garbage_delay_frames;
     };
 
@@ -60,12 +62,14 @@ void ObpfTetrion::apply_expired_garbage() {
             m_matrix.fill(Matrix::height - 1, TetrominoType::Garbage);
             m_matrix.operator[](Vec2{ gap_position, Matrix::height - 1 }) = TetrominoType::Empty;
         }
-    }
+    }*/
 }
 
 std::optional<GarbageSendEvent> ObpfTetrion::simulate_next_frame(KeyState const key_state) {
     auto const deferred_log = c2k::Defer{ [&, key_state] {
-        Logger::log(LogEntry{ *this, key_state });
+        if (m_logging == Logging::Enabled) {
+            Logger::log(LogEntry{ *this, key_state });
+        }
     } };
 
     auto garbage_lines_to_send = u8{ 0 };
@@ -157,25 +161,28 @@ std::optional<GarbageSendEvent> ObpfTetrion::simulate_next_frame(KeyState const 
         case None:
             break;
     }
-    auto const are_there_lines_to_clear = determine_lines_to_clear();
+    // TODO
+    [[maybe_unused]] auto const are_there_lines_to_clear = determine_lines_to_clear();
 
-    auto const can_apply_garbage = did_freeze and not are_there_lines_to_clear;
+    /*auto const can_apply_garbage = did_freeze and not are_there_lines_to_clear;
     if (can_apply_garbage and not m_garbage_receive_queue.empty()) {
         spdlog::info("trying to apply garbage");
         apply_expired_garbage();
-    }
+    }*/
 
     refresh_ghost_tetromino();
 
     ++m_next_frame;
 
-    while (garbage_lines_to_send > 0 and not m_garbage_receive_queue.empty()) {
+    // Counter Attacks.
+    // TODO
+    /*while (garbage_lines_to_send > 0 and not m_garbage_receive_queue.empty()) {
         --m_garbage_receive_queue.front().num_lines;
         if (m_garbage_receive_queue.front().num_lines == 0) {
             m_garbage_receive_queue.pop_front();
         }
         --garbage_lines_to_send;
-    }
+    }*/
 
     if (garbage_lines_to_send == 0) {
         return std::nullopt;
@@ -218,8 +225,9 @@ void ObpfTetrion::on_client_disconnected(u8) {}
     return m_hold_piece;
 }
 
-void ObpfTetrion::receive_garbage(GarbageSendEvent const garbage) {
-    m_garbage_receive_queue.push_back(garbage);
+void ObpfTetrion::receive_garbage(GarbageSendEvent const) {
+    // TODO
+    // m_garbage_receive_queue.push_back(garbage);
 }
 
 [[nodiscard]] u32 ObpfTetrion::level() const {

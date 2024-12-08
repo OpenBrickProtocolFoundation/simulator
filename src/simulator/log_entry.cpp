@@ -59,7 +59,7 @@ LogEntry::LogEntry(ObpfTetrion const& tetrion, KeyState const current_key_state)
       next_frame{ tetrion.next_frame() },
       key_state{ get_key_state(current_key_state) },
       game_over_since_frame{ tetrion.game_over_since_frame().value_or(0) },
-      garbage_send_queue{ get_garbage_queue(tetrion) },
+      m_incoming_garbage{ get_garbage_queue(tetrion) },
       player_name{ tetrion.player_name() } {}
 
 void ensure_path(std::filesystem::path const& path) {

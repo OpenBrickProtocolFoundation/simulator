@@ -38,7 +38,7 @@ enum class TetrominoSelection {
 }
 
 ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
-    return new ObpfTetrion{ seed, 0 };
+    return new ObpfTetrion{ seed, 0, Logging::Enabled };
 } catch (std::exception const& e) {
 
     spdlog::error("Failed to create tetrion: {}", e.what());
@@ -49,7 +49,7 @@ ObpfTetrion* obpf_create_tetrion(uint64_t const seed) try {
 }
 
 ObpfTetrion* obpf_create_multiplayer_tetrion(char const* const host, uint16_t const port, char const* const player_name) try {
-    auto tetrion = MultiplayerTetrion::create(host, port, player_name);
+    auto tetrion = MultiplayerTetrion::create(host, port, Logging::Enabled, player_name);
     if (tetrion == nullptr) {
         return nullptr;
     }

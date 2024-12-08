@@ -6,7 +6,7 @@
 using namespace std::chrono_literals;
 
 int main() {
-    auto tetrion = MultiplayerTetrion::create("127.0.0.1", 12345, "coder2k");
+    auto tetrion = MultiplayerTetrion::create("127.0.0.1", 12345, Logging::Enabled, "coder2k");
     if (tetrion == nullptr) {
         return EXIT_FAILURE;
     }

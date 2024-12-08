@@ -8,7 +8,8 @@
 NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
     std::string const& server,
     std::uint16_t const port,
-    std::string player_name
+    Logging const logging,
+    std::string const& player_name
 ) {
     auto socket = c2k::Sockets::create_client(c2k::AddressFamily::Ipv4, server, port);
     auto message = std::unique_ptr<AbstractMessage>{};
@@ -65,6 +66,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
             game_start_message.random_seed,
             game_start_message.start_frame,
             observer_id,
+            logging,
             std::move(observer_name),
             ObserverTetrion::Key{}
         ));
@@ -90,6 +92,7 @@ NullableUniquePointer<MultiplayerTetrion> MultiplayerTetrion::create(
         game_start_message.start_frame,
         game_start_message.random_seed,
         std::move(observers),
+        logging,
         std::move(this_player_name),
         Key{}
     );
@@ -101,10 +104,11 @@ MultiplayerTetrion::MultiplayerTetrion(
     u64 const start_frame,
     u64 const seed,
     std::vector<std::unique_ptr<ObserverTetrion>> observers,
+    Logging const logging,
     std::string player_name,
     Key
 )
-    : ObpfTetrion{ seed, start_frame, std::move(player_name) },
+    : ObpfTetrion{ seed, start_frame, logging, std::move(player_name) },
       m_socket{ std::move(socket) },
       m_client_id{ client_id },
       m_receiving_thread{ keep_receiving, std::ref(m_socket), std::ref(m_message_queue) },
@@ -211,7 +215,7 @@ void MultiplayerTetrion::process_state_broadcast_message(StateBroadcast const& m
             }
         }
 
-        // apply garbage coming from ourselves
+        // apply garbage coming from ourself
         while (true) {
             auto const garbage = m_outgoing_garbage_queue.apply(
                 [observers_frame](std::deque<GarbageSendEvent>& queue) -> std::optional<GarbageSendEvent> {

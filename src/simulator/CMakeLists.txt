@@ -27,6 +27,8 @@ add_library(simulator STATIC
         utils.hpp
         logger.hpp
         log_entry.cpp
+        include/simulator/logging.hpp
+        include/simulator/garbage_queue.hpp
 )
 
 target_include_directories(simulator

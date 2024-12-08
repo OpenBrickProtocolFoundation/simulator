@@ -11,6 +11,11 @@
 #include <vector>
 #include "utils.hpp"
 
+enum class LogEntryType : u8 {
+    LogEntry,
+    LogEvent,
+};
+
 struct ObpfTetrion;
 
 struct LogTetromino {
@@ -89,7 +94,7 @@ struct LogEntry {
     u64 next_frame;
     LogKeyState key_state;
     u64 game_over_since_frame;
-    std::vector<LogGarbageSendEvent> garbage_send_queue;
+    std::vector<LogGarbageSendEvent> m_incoming_garbage;
     std::string player_name;
 
     explicit LogEntry(ObpfTetrion const& tetrion, KeyState current_key_state);
@@ -112,20 +117,20 @@ struct LogEntry {
           next_frame{ next_frame },
           key_state{ key_state },
           game_over_since_frame{ game_over_since_frame },
-          garbage_send_queue{ std::move(garbage_send_queue) },
+          m_incoming_garbage{ std::move(garbage_send_queue) },
           player_name{ std::move(player_name) } {}
 
     friend std::ostream& operator<<(std::ostream& stream, LogEntry const& entry) {
         auto buffer = c2k::MessageBuffer{};
-        buffer << entry.client_id;
+        buffer << std::to_underlying(LogEntryType::LogEntry) << entry.client_id;
         for (auto const& row : entry.matrix) {
             for (auto const mino : row) {
                 buffer << static_cast<u8>(mino);
             }
         }
         buffer << entry.active_tetromino << static_cast<u8>(entry.hold_piece) << entry.next_frame << entry.key_state
-               << entry.game_over_since_frame << entry.garbage_send_queue.size();
-        for (auto const event : entry.garbage_send_queue) {
+               << entry.game_over_since_frame << entry.m_incoming_garbage.size();
+        for (auto const event : entry.m_incoming_garbage) {
             buffer << event;
         }
         buffer << gsl::narrow<u8>(entry.player_name.size());
@@ -146,3 +151,24 @@ struct LogEntry {
 
 void ensure_path(std::filesystem::path const& path);
 void create_empty_file(std::filesystem::path const& path);
+
+struct LogEvent final {
+    enum class Type : u8 {
+        SendingGarbage,
+    };
+
+    u8 client_id;
+    u64 next_frame;
+    Type type;
+
+    friend std::ostream& operator<<(std::ostream& stream, LogEvent const& entry) {
+        auto buffer = c2k::MessageBuffer{};
+        buffer << std::to_underlying(LogEntryType::LogEvent) << entry.client_id << entry.next_frame
+               << std::to_underlying(entry.type);
+        stream.write(
+            reinterpret_cast<char const*>(buffer.data().data()),
+            gsl::narrow<std::streamsize>(buffer.data().size())
+        );
+        return stream;
+    }
+};

@@ -76,7 +76,7 @@ next_column:;  // 👈(ﾟヮﾟ👈)
 }
 
 TEST(TetrionTests, AllClear) {
-    auto tetrion = ObpfTetrion{ seed_for_tetromino_type(TetrominoType::I), 0 };
+    auto tetrion = ObpfTetrion{ seed_for_tetromino_type(TetrominoType::I), 0, Logging::Disabled };
     auto called_count = usize{ 0 };
     tetrion.set_action_handler(
         [](ObpfAction const action, void* user_data) {

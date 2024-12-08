@@ -126,6 +126,7 @@ struct Heuristic {
         for (auto movement = -5; movement <= 5; ++movement) {
             for (auto rotation = 0; rotation < 4; ++rotation) {
                 auto copy = ObpfTetrion{ tetrion };
+                copy.logging(Logging::Disabled);
 
                 if (hold) {
                     std::ignore = copy.simulate_next_frame(to_key_state(Key::Hold));
@@ -182,7 +183,7 @@ struct Heuristic {
 
 int main() {
     using namespace std::chrono_literals;
-    auto tetrion = MultiplayerTetrion::create("127.0.0.1", 12345, "bot");
+    auto const tetrion = MultiplayerTetrion::create("127.0.0.1", 12345, Logging::Enabled, "bot");
     auto last_tick = std::chrono::high_resolution_clock::now();
     static constexpr auto ticks_per_second = 60;
     static constexpr auto tick_duration = decltype(last_tick)::duration{ 1s } / ticks_per_second;

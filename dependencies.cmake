@@ -22,7 +22,7 @@ function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME C2K_SOCKETS
             GITHUB_REPOSITORY mgerhold/sockets
-            VERSION 0.4.3
+            VERSION 0.4.4
             OPTIONS
             "GSL_TEST OFF"
             "BUILD_SHARED_LIBS OFF"
@@ -50,7 +50,7 @@ function(obpf_simulator_setup_dependencies)
     CPMAddPackage(
             NAME LIB2K
             GITHUB_REPOSITORY mgerhold/lib2k
-            VERSION 0.1.0
+            VERSION 0.1.2
             OPTIONS
             "BUILD_SHARED_LIBS OFF"
     )

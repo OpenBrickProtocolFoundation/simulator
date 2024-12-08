@@ -12,7 +12,7 @@ private:
     bool m_is_connected = true;
 
 public:
-    explicit ObserverTetrion(u64 seed, u64 start_frame, u8 client_id, std::string player_name, Key);
+    explicit ObserverTetrion(u64 seed, u64 start_frame, u8 client_id, Logging logging, std::string player_name, Key);
 
     [[nodiscard]] std::optional<GarbageSendEvent> simulate_next_frame(KeyState) override {
         return std::nullopt;

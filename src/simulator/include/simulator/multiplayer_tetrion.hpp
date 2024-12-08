@@ -25,11 +25,8 @@ private:
     struct Key {};
 
 public:
-    static NullableUniquePointer<MultiplayerTetrion> create(
-        std::string const& server,
-        std::uint16_t port,
-        std::string player_name
-    );
+    static NullableUniquePointer<MultiplayerTetrion>
+        create(std::string const& server, std::uint16_t port, Logging const logging, std::string const& player_name);
 
     // we need address stability of the members here
     MultiplayerTetrion(MultiplayerTetrion const& other) = delete;
@@ -43,6 +40,7 @@ public:
         u64 start_frame,
         u64 seed,
         std::vector<std::unique_ptr<ObserverTetrion>> observers,
+        Logging logging,
         std::string player_name,
         Key
     );

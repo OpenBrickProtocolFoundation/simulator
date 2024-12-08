@@ -22,8 +22,10 @@
 #include "key_state.hpp"
 #include "line_clear_delay.hpp"
 #include "lock_delay.hpp"
+#include "logging.hpp"
 #include "matrix.hpp"
 #include "tetromino.hpp"
+#include "garbage_queue.hpp"
 
 struct ObserverTetrion;
 
@@ -58,8 +60,10 @@ private:
     u64 m_next_gravity_frame = gravity_delay_by_level(0);  // todo: offset by starting frame given by the server
     bool m_is_soft_dropping = false;
     std::optional<u64> m_game_over_since_frame;
-    std::deque<GarbageSendEvent> m_garbage_receive_queue;
     std::string m_player_name;
+    Logging m_logging;
+    GarbageQueue m_incoming_garbage;
+    GarbageQueue m_outgoing_garbage;
 
     static constexpr u64 gravity_delay_by_level(u32 const level) {
         constexpr auto delays = std::array<u64, 13>{
@@ -74,7 +78,12 @@ public:
         SoftDrop,
     };
 
-    explicit ObpfTetrion(u64 seed, u64 start_frame, std::string player_name = "https://twitch.tv/coder2k");
+    explicit ObpfTetrion(
+        u64 seed,
+        u64 start_frame,
+        Logging logging,
+        std::string player_name = "https://twitch.tv/coder2k"
+    );
 
     ObpfTetrion(ObpfTetrion const& other) = default;
     ObpfTetrion(ObpfTetrion&& other) noexcept = default;
@@ -150,22 +159,24 @@ public:
         return m_start_frame - m_next_frame;
     }
 
-    [[nodiscard]] u32 garbage_queue_length() const {
-        auto const range =
-            m_garbage_receive_queue | std::views::transform([](auto const& event) { return event.num_lines; });
-        return std::accumulate(range.begin(), range.end(), u32{ 0 });
+    [[nodiscard]] virtual u32 garbage_queue_length() const {
+        return 0;
     }
 
-    [[nodiscard]] usize garbage_queue_num_events() const {
-        return m_garbage_receive_queue.size();
+    [[nodiscard]] virtual usize garbage_queue_num_events() const {
+        return 0;
     }
 
-    [[nodiscard]] GarbageSendEvent garbage_queue_event(usize const index) const {
-        return m_garbage_receive_queue.at(index);
+    [[nodiscard]] GarbageSendEvent garbage_queue_event(usize const) const {
+        return GarbageSendEvent{ 0, 0 };
     }
 
     [[nodiscard]] std::string const& player_name() const {
         return m_player_name;
+    }
+
+    void logging(Logging const logging) {
+        m_logging = logging;
     }
 
 private:

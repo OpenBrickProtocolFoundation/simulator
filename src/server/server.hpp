@@ -22,7 +22,7 @@ struct ClientInfo final {
     std::string player_name;  // Not filled by constructor, because the name is transferred later.
 
     explicit ClientInfo(u8 const id, u64 const seed, u64 const start_frame)
-        : id{ id }, tetrion{ seed, start_frame } {}
+        : id{ id }, tetrion{ seed, start_frame, Logging::Enabled } {}
 
     [[nodiscard]] bool is_connected() const {
         switch (state) {

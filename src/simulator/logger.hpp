@@ -5,6 +5,7 @@
 #include <fstream>
 #include <lib2k/synchronized.hpp>
 #include <map>
+#include <variant>
 #include <vector>
 #include "log_entry.hpp"
 #include "utils.hpp"
@@ -13,7 +14,7 @@ class Logger final {
 private:
     static constexpr auto buffer_flush_threshold = usize{ 90 };
     std::filesystem::path m_filepath;
-    std::vector<LogEntry> m_log_entries;
+    std::vector<std::variant<LogEntry, LogEvent>> m_log_entries;
 
     explicit Logger(std::filesystem::path const& base_path)
         : m_filepath{ base_path / std::format("{}.log", get_current_date_time()) } {
@@ -39,6 +40,15 @@ public:
         });
     }
 
+    static void log(LogEvent&& event) {
+        instance().apply([&](Logger& logger) {
+            logger.m_log_entries.emplace_back(std::move(event));
+            if (logger.m_log_entries.size() >= buffer_flush_threshold) {
+                flush(logger);
+            }
+        });
+    }
+
 private:
     [[nodiscard]] static c2k::Synchronized<Logger>& instance() {
         static auto logger = c2k::Synchronized{ Logger{ "logs" } };
@@ -53,7 +63,7 @@ private:
             return;
         }
         for (auto const& entry : logger.m_log_entries) {
-            file << entry;
+            std::visit([&](auto const& e) { file << e; }, entry);
         }
         logger.m_log_entries.clear();
     }
